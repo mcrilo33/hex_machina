@@ -4,24 +4,22 @@
 
 > AI News, Curated by AI.
 
----
-
 ## 📌 Overview
 
 Keeping up with the **fast-moving AI landscape** is **time-consuming**. Traditional manual curation can’t scale.
 
 💡 **TTD automates AI news curation**, leveraging **state-of-the-art AI models** to:
+
     ✅ Fetch **AI-related articles** from trusted sources.
     ✅ Tag, summarize, and classify posts for relevance.
     ✅ Format the best insights into **a structured newsletter**.
 
 🔎 **The goal? Effortless, high-quality AI updates in one place.**
 
----
-
 ## 📜 Background
 
 Most AI newsletters today are either:
+
     ❌ **Too limited** → They miss key developments.
     ❌ **Too time-consuming**.
 
@@ -29,8 +27,6 @@ Most AI newsletters today are either:
     🔹 **Comprehensive coverage** of AI research.
     🔹 **Timely and relevant content** filtering.
     🔹 **Automatic newsletter generation** without human intervention.
-
----
 
 ## ✅ Features & Scope
 
@@ -48,12 +44,11 @@ Most AI newsletters today are either:
     🚫 **Personalized content filtering** (future enhancement).
     🚫 **Paid content sources**. *But no worries, there are a lot of very high quality publicly available content*.
 
----
-
 ## 🛠 Architecture & Workflow
 
 TTD follows a modular architecture, making it scalable & maintainable.
 
+```mermaid
 sequenceDiagram
     participant Scraper
     participant Enricher
@@ -65,6 +60,7 @@ sequenceDiagram
     Enricher->>Classifier: Tag, Summarize, etc...
     Classifier->>NewsletterFormatter: Rank
     NewsletterFormatter->>WebService: Generate Newsletter
+```
 
 📌 Key Components:
 
@@ -73,8 +69,6 @@ sequenceDiagram
 - Classifier 🏆 → Scores relevance & filters bad items.
 - Newsletter Generator 📝 → Formats top AI stories into a digest.
 - Orchestrator 🔄 → Runs the entire pipeline automatically.
-
----
 
 ## 🏗 Technology Stack
 
