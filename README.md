@@ -67,7 +67,7 @@ Most AI newsletters today are either:
 ## 🏗 Technology Stack
 
 | Component | Technology |
-| --- | --- | --- |
+| --- | --- |
 | Scraping            | Scrapy                       |
 | Database            | TinyDB                       |
 | Tagging & NLP       | Hugging Face / OpenAI API    |
