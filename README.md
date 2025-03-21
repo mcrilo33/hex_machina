@@ -56,24 +56,6 @@ Most AI newsletters today are either:
 
 🚫 **Paid content sources**. *But no worries, there are a lot of very high quality publicly available content*.
 
-## 🛠 Architecture & Workflow
-
-TTD follows a modular architecture, making it scalable & maintainable.
-
-```mermaid
-sequenceDiagram
-    participant Scraper
-    participant Enricher
-    participant Classifier
-    participant NewsletterFormatter
-    participant WebService
-
-    Scraper->>Enricher: Extract Metadata & Content
-    Enricher->>Classifier: Tag, Summarize, etc...
-    Classifier->>NewsletterFormatter: Rank
-    NewsletterFormatter->>WebService: Generate Newsletter
-```
-
 ### 📌 Key Components:
 
 - Scraper 🕵️‍♂️ → Fetches AI articles hourly from public sources.
@@ -96,9 +78,9 @@ sequenceDiagram
 
 ## 📚 Documentation
 
-[📚 TTD Newsletter Documentation]](docs/README.md)
+[TTD Newsletter Documentation](docs/README.md)
 
-## 📧 Contact & Support
+##  Contact & Support
 
 For questions or contributions, contact **Mathieu Crilout** at <mathieu.crilout@gmail.com>.
 
