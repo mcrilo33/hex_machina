@@ -94,6 +94,10 @@ sequenceDiagram
 | Hosting             | Beehiv                       |
 | Automation          | Cron Jobs / Python Scripts   |
 
+## 📚 Documentation
+
+[📚 TTD Newsletter Documentation]](docs/README.md)
+
 ## 📧 Contact & Support
 
 For questions or contributions, contact **Mathieu Crilout** at <mathieu.crilout@gmail.com>.
