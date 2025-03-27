@@ -1,3 +1,6 @@
+# Uninteresting project's data
+research/data
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
