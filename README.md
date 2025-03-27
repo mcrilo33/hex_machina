@@ -88,5 +88,6 @@ For questions or contributions, contact **Mathieu Crilout** at <mathieu.crilout@
 If you find this useful, give it a ⭐ on **GitHub!** 😊
 
 ## 📜 License
+
 This software is proprietary and owned by **Mathieu Crilout**.  
 Unauthorized use, distribution, or modification is prohibited.  
