@@ -4,14 +4,13 @@ Tracking potential sources for scraping AI news & blogs.
 
 ## ✅ Sources
 
-| Name             | URL                          | RSS | API | JS | Scrap | Quality | Expertise | Multimedia | Post Size | Freq    | Notes                          |
-|------------------|-------------------------------|-----|-----|----|--------|---------|-----------|-------------|-----------|---------|-------------------------------|
-| Example Source   | https://example.com/ai        | ✅  | ❌  | ❌ | ✅     | 4       | 3         | Minimal     | Medium    | Weekly  | Clean HTML, high quality blog |
+| Name             | URL                          | RSS | JS | Scrap | Quality | Expertise | Multimedia | Post Size | Freq    | Notes                          |
+|------------------|-------------------------------|------|----|--------|---------|-----------|-------------|-----------|---------|-------------------------------|
+| Example Source   | https://example.com/ai        | ✅  | ❌ | ✅     | 4       | 3         | Minimal     | Medium    | Weekly  | Clean HTML, high quality blog |
 
 ## 🧠 Criteria
 
 - **RSS**: Feed available?
-- **API**: API available?
 - **Scrap**: Easily scrappable?
 - **Quality**: 0 to 4 — Not relevant, Bad, Medium, High, Exceptional
 - **Expertise Level**: 1 to 5 — Main Audience, Product AI User, Technical outside AI, Technical AI, Expert/Academic
