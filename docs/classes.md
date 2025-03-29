@@ -6,7 +6,7 @@
 classDiagram
     %% ===== BASE STORAGE SERVICE =====
     class StorageService {
-        <<Service>>
+        <<Abstract>>
         +get_table(table_name)
         +insert(table_name, data)
         +update(table_name, data, query_field, query_value)
@@ -14,50 +14,33 @@ classDiagram
         +get_all(table_name)
         +count_records(table_name)
     }
-    %% ===== ARTICLE-SPECIFIC STORAGE =====
-    class ArticleStorageService {
-        <<Service>>
-        -StorageService storage
+
+    %% ===== TINYDB STORAGE IMPLEMENTATION =====
+    class TinyDBStorageService {
+        +get_table(table_name)
+        +insert(table_name, data)
+        +update(table_name, data, query_field, query_value)
+        +delete(table_name, query_field, query_value)
+        +get_all(table_name)
+        +count_records(table_name)
+    }
+
+    %% ===== APP-SPECIFIC STORAGE WRAPPER =====
+    class TTDStorage {
         +save_articles(articles)
-        +update_articles(articles)
-        +get_articles(article_ids)
-    }
-    %% ===== MODEL-SPECIFIC STORAGE =====
-    class ModelStorageService {
-        <<Service>>
-        -StorageService storage
+        +get_article_by_id(id)
         +save_model(model)
-        +update_model(model)
-        +get_model(model_id)
-    }
-    %% ===== PREDICTIONS STORAGE =====
-    class PredictionsStorageService {
-        <<Service>>
-        -StorageService storage
-        +save_predictions(predictions)
-    }
-    %% ===== TAGS STORAGE =====
-    class TagsStorageService {
-        <<Service>>
-        -StorageService storage
+        +save_prediction(prediction)
+        +get_predictions_for_article(article_id)
         +save_tag(tag)
-        +get_tag(tag_id)
         +get_tags_for_article(article_id)
-    }
-    %% ===== CONCEPTS STORAGE =====
-    class ConceptsStorageService {
-        <<Service>>
-        -StorageService storage
         +save_concept(concept)
-        +get_concept(concept_id)
         +get_concepts_for_article(article_id)
     }
+
     %% ===== RELATIONSHIPS =====
-    StorageService <|-- ArticleStorageService
-    StorageService <|-- ModelStorageService
-    StorageService <|-- PredictionsStorageService
-    StorageService <|-- TagsStorageService
-    StorageService <|-- ConceptsStorageService
+    StorageService <|-- TinyDBStorageService
+    TinyDBStorageService <|-- TTDStorage
 ```
 
 ## Scrapers
