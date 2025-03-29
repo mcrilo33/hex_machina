@@ -65,29 +65,28 @@ classDiagram
 ```mermaid
 classDiagram
     %% ===== BASE SCRAPER CLASS =====
-    class BaseUrlScraper {
-        <<Abstract>>
-        +list~string~ source_urls
-        +parse(response)*
-        +store()*
-    }
-    %% ===== ARTICLE SCRAPER CLASS =====
-    class ArticleWebsiteScraper {
+    class BaseArticleScraper {
         <<Abstract>>
         - ScraperStorageService storage_service
+        +list~string~ source_urls
         +parse(response)*
         +parse_article(response)*
-        +store(articles)
+        +store()
     }
     %% ===== GOOGLE RESEARCH SCRAPER =====
     class ResearchGoogleScraper {
         +parse(response)
         +parse_article(response)
     }
+    %% ===== RSS ARTICLE SCRAPER =====
+    class RSSArticleScraper {
+        +parse(entry)
+        +normalize_feed_item(entry)
+    }
     %% ===== RELATIONSHIPS =====
-    BaseUrlScraper <|-- ArticleWebsiteScraper
-    ArticleWebsiteScraper <|-- ResearchGoogleScraper
-    ArticleStorageService <-- ArticleWebsiteScraper : "Uses Storage"
+    BaseArticleScraper <|-- ResearchGoogleScraper
+    BaseArticleScraper <|-- RSSArticleScraper
+    ArticleStorageService <-- BaseArticleScraper : "Uses Storage"
 ```
 
 ## Enrichers
