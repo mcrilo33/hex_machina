@@ -22,7 +22,7 @@ class RSSArticleScraper(BaseArticleScraper):
                 entry['domain'] = domain
                 normalized = self.parse_article(entry)
 
-                if self._should_skip_entry(normalized):
+                if self.should_skip_entry(normalized):
                     break # stop if entry is too old
 
                 article_url = normalized.get("source_url")
