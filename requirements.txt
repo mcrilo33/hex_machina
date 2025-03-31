@@ -11,3 +11,4 @@ scrapy-playwright==0.0.43
 sgmllib3k==1.0.0
 soupsieve==2.6
 tinydb==4.8.2
+pyyaml==6.0.2
