@@ -7,13 +7,13 @@ erDiagram
         string title
         string author
         date published_date
-        string content
+        string text_content_path
+        string html_content_path
         string summary_one_min
         string summary_one_liner
         int reading_time
-        string source_name
-        string source_url
-        string article_url
+        string url_domain
+        string url
         date timestamp
         int model_id FK
         int execution_time
