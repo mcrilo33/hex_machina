@@ -1,5 +1,6 @@
 # Uninteresting project's data
 research/data
+data
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

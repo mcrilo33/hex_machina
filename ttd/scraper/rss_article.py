@@ -1,8 +1,8 @@
-import tldextract
 import feedparser
 import scrapy
 from typing import List
 from .base_article import BaseArticleScraper
+from .utils import extract_domain
 
 
 class RSSArticleScraper(BaseArticleScraper):
@@ -16,7 +16,6 @@ class RSSArticleScraper(BaseArticleScraper):
     def start_requests(self):
         for feed_url in self.start_urls:
             feed = feedparser.parse(feed_url)
-            domain = tldextract.extract(feed_url).domain
 
             for entry in feed.entries:
                 entry['domain'] = domain
@@ -26,11 +25,15 @@ class RSSArticleScraper(BaseArticleScraper):
                     break # stop if entry is too old
 
                 article_url = normalized.get("source_url")
+                domain = extract_domain(article_url)
                 if article_url:
                     yield scrapy.Request(
                         url=article_url,
                         callback=self.parse,
-                        meta={"rss_data": normalized}
+                        meta={
+                            "rss_data": normalized,
+                            "playwright": True
+                        }
                     )
 
     def parse_article(self, entry: dict) -> dict:
@@ -53,6 +56,7 @@ class RSSArticleScraper(BaseArticleScraper):
         You can enrich the original RSS data with full HTML content here.
         """
         rss_data = response.meta.get("rss_data", {})
+        import ipdb; ipdb.set_trace()
         rss_data["html"] = response.text  # optionally store raw HTML or parse more
 
         self.store([rss_data])
