@@ -1,7 +1,8 @@
 import re
 from urllib.parse import urlparse
+from main_content_extractor import MainContentExtractor
 
-def extract_domain_urllib(url):
+def _extract_domain_urllib(url):
     """
     Extracts the domain name from a URL using urllib.parse.
 
@@ -16,7 +17,7 @@ def extract_domain_urllib(url):
     parsed_url = re.sub(r'^www.', '', parsed_url)
     return parsed_url
 
-extract_domain = extract_domain_urllib
+extract_domain = _extract_domain_urllib
 
 import re
 
