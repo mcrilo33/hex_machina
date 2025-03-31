@@ -1,6 +1,5 @@
 import scrapy
 from urllib.parse import urljoin
-from scrapy_playwright.page import PageMethod
 
 class DataMachinaPlaywrightSpider(scrapy.Spider):
     name = "datamachina_playwright"
