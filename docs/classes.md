@@ -5,8 +5,7 @@
 ```mermaid
 classDiagram
     %% ===== BASE STORAGE SERVICE =====
-    class StorageService {
-        <<Abstract>>
+    interface StorageService {
         +get_table(table_name)
         +insert(table_name, data)
         +update(table_name, data, query_field, query_value)
@@ -25,6 +24,20 @@ classDiagram
         +count_records(table_name)
     }
 
+    %% ===== TEXT FILE AND MODEL MANAGERS =====
+    class ModelManager {
+        +save_model(model_dict)
+        +get_model(model_id)
+        +update_model(model_dict)
+        +load_model(model_name)
+    }
+
+    class TextFileManager {
+        +store_article_files(article_dict)
+        +read_text_file(path)
+        +read_html_file(path)
+    }
+
     %% ===== APP-SPECIFIC STORAGE WRAPPER =====
     class TTDStorage {
         +save_articles(articles)
@@ -36,11 +49,17 @@ classDiagram
         +get_tags_for_article(article_id)
         +save_concept(concept)
         +get_concepts_for_article(article_id)
+        +from_article_get_html(article)
+        +from_article_get_text(article)
+        -model_manager: ModelManager
+        -file_manager: TextFileManager
     }
 
     %% ===== RELATIONSHIPS =====
     StorageService <|-- TinyDBStorageService
     TinyDBStorageService <|-- TTDStorage
+    TTDStorage --> ModelManager : uses
+    TTDStorage --> TextFileManager : uses
 ```
 
 ## Scrapers

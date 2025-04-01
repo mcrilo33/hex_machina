@@ -7,14 +7,14 @@ erDiagram
         string title
         string author
         date published_date
-        string content
+        string text_content_path
+        string html_content_path
         string summary_one_min
         string summary_one_liner
         int reading_time
-        string source_name
-        string source_url
-        string article_url
-        date timestamp
+        string url_domain
+        string url
+        date created_at
         int model_id FK
         int execution_time
     }
@@ -52,7 +52,7 @@ erDiagram
         int task_type FK
         string output
         float confidence
-        date timestamp
+        date created_at
         int execution_time
     }
 
