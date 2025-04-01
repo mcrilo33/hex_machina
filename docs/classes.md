@@ -5,7 +5,8 @@
 ```mermaid
 classDiagram
     %% ===== BASE STORAGE SERVICE =====
-    interface StorageService {
+    class StorageService {
+        <<Interface>>
         +get_table(table_name)
         +insert(table_name, data)
         +update(table_name, data, query_field, query_value)
