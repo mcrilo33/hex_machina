@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()  # Load .env vars, assuming it's not already done elsewhere
 
+
 class ModelManager:
     def __init__(self, storage: TTDStorage):
         self.storage = storage
@@ -25,7 +26,8 @@ class ModelManager:
         return self.storage.get_by_id('models', model_id)
 
     def get_model_by_name(self, name: str) -> Optional[dict]:
-        results = self.storage.query('models', where('name') == name)
+        # results = self.storage.query('models', where('name') == name)
+        results = None
         return results[0] if results else None
 
     def load_model(self, name: str):
@@ -42,7 +44,9 @@ class ModelManager:
             return self._load_claude_model(model)
         # Add more integrations as needed
         else:
-            raise NotImplementedError(f"Model endpoint '{model['endpoint']}' not supported yet.")
+            raise NotImplementedError(
+                f"Model endpoint '{model['endpoint']}' not supported yet."
+            )
 
     def _load_openai_model(self, model: dict):
         import openai
