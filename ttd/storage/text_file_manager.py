@@ -1,15 +1,18 @@
 import os
-from urllib.parse import quote, unquote
+import logging
+from urllib.parse import quote
 from datetime import datetime
+
 
 class TextFileManager:
     def __init__(self, base_dir: str):
         """
         Handles storing and reading raw HTML and extracted text for articles.
-        
+
         Args:
             base_dir (str): Base directory for storage (usually from db_path)
         """
+        self.logger = logging.getLogger(__name__)
         self.base_dir = os.path.abspath(os.path.join(os.path.dirname(base_dir), "raw"))
 
     def _build_paths(self, url: str, timestamp: str):
@@ -44,14 +47,14 @@ class TextFileManager:
             with open(html_path, "w", encoding="utf-8") as f:
                 f.write(article["html_content"])
         except OSError as e:
-            logger.error(f"Failed writing HTML to {html_path}: {e}")
+            self.logger.error(f"Failed writing HTML to {html_path}: {e}")
             return None
         # Write extracted text
         try:
             with open(text_path, "w", encoding="utf-8") as f:
                 f.write(article["text_content"])
         except OSError as e:
-            logger.error(f"Failed writing HTML to {html_path}: {e}")
+            self.logger.error(f"Failed writing HTML to {html_path}: {e}")
             return None
 
         article["html_content_path"] = html_path

@@ -1,7 +1,5 @@
-import os
-from urllib.parse import quote
 from typing import List
-from datetime import datetime
+from tinydb import Query
 from .base_storage import TinyDBStorageService
 
 
@@ -18,7 +16,7 @@ class TTDStorage(TinyDBStorageService):
         from ttd.storage.text_file_manager import TextFileManager
         self.model_manager = ModelManager(self)
         self.file_manager = TextFileManager(db_path)
-    
+
     # --- Articles ---
     def save_articles(self, articles: List[dict]):
         for article in articles:
@@ -27,7 +25,7 @@ class TTDStorage(TinyDBStorageService):
 
     def get_article_by_id(self, article_id):
         return self.get_table("articles").get(doc_id=article_id)
-    
+
     def from_article_get_html(self, article):
         return self.file_manager.read_html(article)
 
