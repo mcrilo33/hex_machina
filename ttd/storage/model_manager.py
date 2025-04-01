@@ -1,11 +1,37 @@
 import os
-from datetime import datetime
-from typing import Optional
-
-from .ttd_storage import TTDStorage
 from dotenv import load_dotenv
+from datetime import datetime
+from .ttd_storage import TTDStorage
+from pathlib import Path
 
-load_dotenv()  # Load .env vars, assuming it's not already done elsewhere
+dotenv_path = Path(__file__).resolve().parent.parent.parent / ".env"
+load_dotenv(dotenv_path)
+
+
+class OpenAIModel:
+    def __init__(self, config: dict):
+        from openai import OpenAI
+        assert "api_key_env_var" in config
+        assert "base_url" in config
+
+        api_key = os.getenv(config["api_key_env_var"])
+        self.client = OpenAI(
+            base_url=config["base_url"],
+            api_key=api_key,
+        )
+        self.model_name = config["model"]
+        del config["base_url"]
+        del config["api_key_env_var"]
+        del config["model"]
+        self.config = config
+
+    def predict(self, prompt: str) -> str:
+        response = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=[{"role": "user", "content": prompt}],
+            **self.config
+        )
+        return response.choices[0].message.content.strip()
 
 
 class ModelManager:
@@ -13,8 +39,6 @@ class ModelManager:
         self.storage = storage
 
     def save_model(self, model: dict):
-        assert 'name' in model
-
         model['created_at'] = datetime.utcnow().isoformat()
         model['last_updated'] = model['created_at']
 
@@ -22,35 +46,18 @@ class ModelManager:
 
     def update_model(self, model: dict):
         model['last_updated'] = datetime.utcnow().isoformat()
-        self.storage.update('models', model['id'], model)
+        return model
 
-    def get_model(self, model_id: int) -> Optional[dict]:
-        return self.storage.get_by_id('models', model_id)
-
-    def load_model(self, name: str):
+    def load_model(self, model):
         """
         Loads and returns a model instance (e.g., an LLM client).
         """
-        model = self.get_model_by_name(name)
-        if not model:
-            raise ValueError(f"Model '{name}' not found in registry.")
+        assert "config" in model
 
-        if "openai" in model["endpoint"]:
-            return self._load_openai_model(model)
-        elif "anthropic" in model["endpoint"]:
-            return self._load_claude_model(model)
+        if "openai" in model["config"]:
+            return OpenAIModel(model['config']['openai'])
         # Add more integrations as needed
         else:
             raise NotImplementedError(
                 f"Model endpoint '{model['endpoint']}' not supported yet."
             )
-
-    def _load_openai_model(self, model: dict):
-        import openai
-        openai.api_key = os.getenv("OPENAI_API_KEY")
-        return openai.ChatCompletion
-
-    def _load_claude_model(self, model: dict):
-        import anthropic
-        client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        return client.messages

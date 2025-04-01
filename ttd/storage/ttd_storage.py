@@ -33,11 +33,22 @@ class TTDStorage(TinyDBStorageService):
 
     # --- Models ---
     def save_model(self, model: dict):
+        assert 'name' in model
         self.model_manager.save_model(model)
         self.insert('models', model)
 
+    def update_model(self, model: dict):
+        self.model_manager.update_model(model)
+        for key, value in model.items():
+            self.update('models', model, key, value)
+
     def get_model_by_name(self, name: str):
-        pass
+        model = self.get_by_name('models', name)
+        return model
+
+    def load_model_by_name(self, name: str):
+        model = self.get_model_by_name(name)
+        return self.model_manager.load_model(model)
 
     # --- Tags ---
     def save_tag(self, tag: dict):

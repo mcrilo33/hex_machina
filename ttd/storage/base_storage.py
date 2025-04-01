@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from tinydb import TinyDB, Query
-from typing import Any
 
 
 class StorageService(ABC):
@@ -40,6 +39,12 @@ class TinyDBStorageService(StorageService):
 
     def get_table(self, table_name):
         return self.db.table(table_name)
+
+    def get_by_name(self, table_name, name: str):
+        table = self.get_table(table_name)
+        q = Query()
+        result = table.get(q.name == name)
+        return result
 
     def insert(self, table_name, data):
         table = self.get_table(table_name)
