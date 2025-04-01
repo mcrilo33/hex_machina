@@ -14,7 +14,7 @@ erDiagram
         int reading_time
         string url_domain
         string url
-        date timestamp
+        date created_at
         int model_id FK
         int execution_time
     }
@@ -52,7 +52,7 @@ erDiagram
         int task_type FK
         string output
         float confidence
-        date timestamp
+        date created_at
         int execution_time
     }
 

@@ -35,6 +35,7 @@ class StorageService(ABC):
 
 class TinyDBStorageService(StorageService):
     def __init__(self, db_path: str):
+        self.db_path = db_path
         self.db = TinyDB(db_path)
 
     def get_table(self, table_name):

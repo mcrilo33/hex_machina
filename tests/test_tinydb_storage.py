@@ -1,6 +1,6 @@
 import pytest
 from tempfile import NamedTemporaryFile
-from ttd.storage.base import TinyDBStorageService
+from ttd.storage.base_storage import TinyDBStorageService
 
 
 @pytest.fixture
