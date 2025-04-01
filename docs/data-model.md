@@ -43,6 +43,7 @@ erDiagram
         string endpoint
         string input_format
         string output_format
+        config
     }
 
     PREDICTIONS {
