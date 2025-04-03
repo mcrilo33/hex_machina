@@ -25,10 +25,10 @@ class OpenAIModel:
         del config["model"]
         self.config = config
 
-    def predict(self, prompt: str) -> str:
+    def predict(self, article: str) -> str:
         response = self.client.chat.completions.create(
             model=self.model_name,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": article}],
             **self.config
         )
         return response.choices[0].message.content.strip()

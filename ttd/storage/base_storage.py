@@ -58,6 +58,15 @@ class TinyDBStorageService(StorageService):
         q = Query()
         table.update(data, q[query_field] == query_value)
 
+    def delete_field_from_table(self, table_name: str, field_to_delete: str):
+        table = self.get_table(table_name)
+
+        def remove_field(doc):
+            if field_to_delete in doc:
+                del doc[field_to_delete]
+
+        table.update(remove_field)
+
     def delete(self, table_name, query_field, query_value):
         table = self.get_table(table_name)
         q = Query()

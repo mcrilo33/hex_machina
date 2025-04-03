@@ -1,3 +1,5 @@
+import time
+from datetime import datetime
 from typing import List
 from .base_storage import TinyDBStorageService
 
@@ -48,14 +50,61 @@ class TTDStorage(TinyDBStorageService):
 
     def load_model_by_name(self, name: str):
         model = self.get_model_by_name(name)
-        return self.model_manager.load_model(model)
+        model["model_instance"] = self.model_manager.load_model(model)
+        return model
+
+    def get_input_from_article(self, article: dict, input: str):
+        fields = input.split(",")
+        input = []
+        for field in fields:
+            if field == "html_content":
+                input.append(self.from_article_get_html(article))
+            elif field == "text_content":
+                input.append(self.from_article_get_text(article))
+            elif field in article:
+                input.append(article[field])
+            else:
+                raise ValueError(f"Invalid input field: {field}")
+
+        if len(input) == 1:
+            return input[0]
+
+        return input
+
+    def run_model_on_articles(self, model, articles, save=True):
+        assert "model_instance" in model
+        instance = model["model_instance"]
+        assert hasattr(instance, "predict"), \
+            f"Model '{instance}' must implement .predict()"
+
+        predictions = []
+        for article in articles:
+            input = self.get_input_from_article(article, model["input_format"])
+            start_time = time.time()
+            output = instance.predict(input)
+            elapsed_time = time.time() - start_time
+
+            predictions.append({
+                "article_id": article.doc_id,
+                "model_id": model.doc_id,
+                "task_type": model["output_format"],
+                "output": output,
+                "created_at": datetime.utcnow().isoformat(),
+                "execution_time": int(elapsed_time)
+            })
+
+        if save:
+            self.save_predictions(predictions)
+
+        return predictions
 
     # --- Tags ---
     def save_tag(self, tag: dict):
         self.insert("tags", tag)
 
     # --- Predictions ---
-    def save_prediction(self, prediction: dict):
-        self.insert("predictions", prediction)
+    def save_predictions(self, predictions: List[dict]):
+        for prediction in predictions:
+            self.insert("predictions", prediction)
 
     # --- Concepts ---
