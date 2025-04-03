@@ -21,7 +21,10 @@ class TTDStorage(TinyDBStorageService):
     # --- Articles ---
     def save_articles(self, articles: List[dict]):
         for article in articles:
+            start_time = time.time()
             article = self.file_manager.store_article_files(article)
+            elapsed_time = time.time() - start_time
+            article["execution_time"] = int(elapsed_time)
         self.insert("articles", articles)
 
     def get_article_by_id(self, article_id):

@@ -2,6 +2,7 @@ import re
 from urllib.parse import urlparse
 from main_content_extractor import MainContentExtractor
 
+
 def _extract_domain_urllib(url):
     """
     Extracts the domain name from a URL using urllib.parse.
@@ -17,11 +18,15 @@ def _extract_domain_urllib(url):
     parsed_url = re.sub(r'^www.', '', parsed_url)
     return parsed_url
 
+
 extract_domain = _extract_domain_urllib
 
-import re
 
 def _clean_markdown(text):
+
+    # Remove urls
+    text = re.sub(r'https?:\/\/\S+|www\.([\w\.\/-]+)', r'\1', text)
+
     # Remove images but preserve alt text if present
     text = re.sub(r'!\[([^\]]*?)\]\(.*?\)', r'\1', text, flags=re.DOTALL)
 
@@ -35,7 +40,7 @@ def _clean_markdown(text):
     text = re.sub(r'(\S)\n(?=\S)', r'\1 ', text)
 
     # Fix markdown bullet lists
-    #text = re.sub(r'\s*\*\s*', r'\n* ', text)
+    text = re.sub(r'\s*\*\s*', r'\n* ', text)
 
     # Fix markdown numbered lists
     text = re.sub(r' +(\d+\.) +', r'\n\1 ', text)

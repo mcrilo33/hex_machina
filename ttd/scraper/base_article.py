@@ -1,6 +1,6 @@
 from datetime import datetime
 from abc import ABC, abstractmethod
-from typing import List, Any
+from typing import List
 import scrapy
 
 
@@ -10,7 +10,14 @@ class BaseArticleScraper(scrapy.Spider, ABC):
     Inherits from scrapy.Spider and enforces a standard scraping interface.
     """
 
-    def __init__(self, start_urls: List[str], storage_service, last_date=None, *args, **kwargs):
+    def __init__(
+        self,
+        start_urls: List[str],
+        storage_service,
+        last_date=None,
+        *args,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.start_urls = start_urls
         self.storage_service = storage_service
@@ -39,14 +46,16 @@ class BaseArticleScraper(scrapy.Spider, ABC):
     @abstractmethod
     def parse(self, response):
         """
-        Parse a raw source (HTML response or RSS entry) and return a list of article dicts.
+        Parse a raw source (HTML response or RSS entry)
+        and return a list of article dicts.
         """
         pass
 
     @abstractmethod
     def parse_article(self, response):
         """
-        Parse a single article block (HTML element or feed entry) into a structured dict.
+        Parse a single article block (HTML element or feed entry)
+        into a structured dict.
         """
         pass
 
@@ -54,5 +63,4 @@ class BaseArticleScraper(scrapy.Spider, ABC):
         """
         Store article data using the provided storage service.
         """
-        if articles:
-            self.storage_service.save_articles(articles)
+        self.storage_service.save_articles(articles)
