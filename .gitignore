@@ -177,5 +177,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# Pre-commit hook
 .pre-commit-config.yaml
 
+# Local test
+test.py

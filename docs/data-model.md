@@ -37,12 +37,11 @@ erDiagram
         string name
         string version
         string description
-        int task_type FK
         date created_at
         date last_updated
-        string endpoint
         string input_format
-        string output_format
+        string output_format FK
+        dict config
     }
 
     PREDICTIONS {

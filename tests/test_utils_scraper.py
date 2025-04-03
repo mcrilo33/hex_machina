@@ -1,14 +1,6 @@
 import pytest
-import re
-from urllib.parse import urlparse
 from ttd.scraper.utils import extract_domain, extract_markdown_from_html
 
-# Assume we are importing the functions from your module, e.g. `my_module`
-# from my_module import extract_domain, extract_markdown_from_html
-
-##############################################################################
-# Tests for extract_domain
-##############################################################################
 
 @pytest.mark.parametrize("url,expected_domain", [
     ("http://example.com", "example.com"),
@@ -22,14 +14,9 @@ from ttd.scraper.utils import extract_domain, extract_markdown_from_html
     ("", ""),  # empty string
 ])
 def test_extract_domain(url, expected_domain):
-    from urllib.parse import urlparse
     parsed = extract_domain(url)
     assert parsed == expected_domain
 
-
-##############################################################################
-# Tests for extract_markdown_from_html
-##############################################################################
 
 def test_extract_markdown_from_html():
 
@@ -37,10 +24,11 @@ def test_extract_markdown_from_html():
     <html>
         <body>
         <p>First paragraph with a <a href="http://example.com">link</a> inside.</p>
-        <p>Here is an image: <img src="http://example.com/image.png" alt="alt text"/></p>
+        <p>Here is an image: <img src="http://example.com/image.png" alt="alt text"/>
+        </p>
         <h2>Another Heading</h2>
-        <p>Second paragraph. 
-            Some <b>bold text</b> and 
+        <p>Second paragraph.
+            Some <b>bold text</b> and
             a <i>line break</i>.
         </p>
         </body>
