@@ -30,6 +30,10 @@ class TTDStorage(TinyDBStorageService):
     def get_article_by_id(self, article_id):
         return self.get_table("articles").get(doc_id=article_id)
 
+    def get_article_by_url(self, url):
+        article = self.get_by_url('articles', url)
+        return article
+
     def from_article_get_html(self, article):
         return self.file_manager.read_html(article)
 

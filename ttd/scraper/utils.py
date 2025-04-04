@@ -22,16 +22,16 @@ def _extract_domain_urllib(url):
 extract_domain = _extract_domain_urllib
 
 
-def _clean_markdown(text):
+def clean_markdown(text):
 
     # Remove urls
-    text = re.sub(r'https?:\/\/\S+|www\.([\w\.\/-]+)', r'\1', text)
+    text = re.sub(r'(https?:\/\/|www\.)([\w\.\/-]+)', r'', text)
 
     # Remove images but preserve alt text if present
     text = re.sub(r'!\[([^\]]*?)\]\(.*?\)', r'\1', text, flags=re.DOTALL)
 
     # Remove remaining links but keep the link text
-    text = re.sub(r'\[([^\]]*?)\]\(.*?\)(\W)', r'\1\2', text, flags=re.DOTALL)
+    text = re.sub(r'\[([^\]]*?)\]\(.*?\)', r'\1', text, flags=re.DOTALL)
 
     # Fix dashes separated by line breaks (e.g., "-\nword" → "-word")
     text = re.sub(r'(-)\n(\w)', r'\1\2', text)
@@ -47,6 +47,9 @@ def _clean_markdown(text):
 
     # Remove HTML tags
     text = re.sub(r'<[^>]+>', '', text)
+
+    # Remove Non-breaking space
+    text = re.sub(r'&nbsp;', '', text)
 
     # Remove lines full of [ \*#\n]
     text = re.sub(r'\n[ \*#\n]*', r'\n', text, flags=re.DOTALL)
@@ -69,4 +72,4 @@ def extract_markdown_from_html(html):
     str: The extracted markdown content.
     """
     extracted = MainContentExtractor.extract(html, output_format="markdown")
-    return _clean_markdown(extracted)
+    return clean_markdown(extracted)

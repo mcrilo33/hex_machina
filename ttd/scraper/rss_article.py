@@ -3,7 +3,7 @@ import scrapy
 from scrapy.exceptions import CloseSpider
 from scrapy_playwright.page import PageMethod
 from .base_article import BaseArticleScraper
-from .utils import extract_domain, extract_markdown_from_html
+from .utils import extract_domain, extract_markdown_from_html, clean_markdown
 
 from playwright.sync_api import sync_playwright
 from playwright_stealth import stealth_sync
@@ -27,6 +27,18 @@ def parse_article(entry: dict) -> dict:
             [tag["term"] for tag in entry.get("tags", [])]
             if "tags" in entry else [],
     }
+
+
+def extract_article(entry: dict) -> dict:
+    assert "html_content" in entry
+    entry["text_content"] = extract_markdown_from_html(entry["html_content"])
+    entry["html_content_length"] = len(entry["html_content"])
+    entry["text_content_length"] = len(entry["text_content"])
+    entry["summary"] = clean_markdown(entry["summary"])
+    entry["summary_length"] = len(entry["summary"])
+    entry["summary_text_ratio"] = \
+        entry["summary_length"]/entry["text_content_length"]
+    return entry
 
 
 class StealthRSSArticleScraper(BaseArticleScraper):
@@ -62,6 +74,12 @@ class StealthRSSArticleScraper(BaseArticleScraper):
                                 "Reached 2 calls to parse; stopping spider."
                             )
                         normalized["html_content"] = html
+                        normalized = extract_article(normalized)
+                        if normalized["summary_text_ratio"] > 1.1:
+                            ratio = normalized['summary_text_ratio']
+                            self.logger.warning(
+                                f"Weird Summary/Text ratio {ratio}"
+                            )
                         normalized["text_content"] = extract_markdown_from_html(html)
                         self.store([normalized])
         return iter([])
@@ -94,7 +112,7 @@ class StealthRSSArticleScraper(BaseArticleScraper):
         pass  # unused now, handled in start_requests
 
     def parse_article(self, response):
-        parse_article(response)
+        return parse_article(response)
 
 
 class RSSArticleScraper(BaseArticleScraper):
@@ -181,9 +199,13 @@ class RSSArticleScraper(BaseArticleScraper):
 
         rss_data = response.meta.get("rss_data", {})
         rss_data["html_content"] = response.text
-        rss_data["text_content"] = extract_markdown_from_html(rss_data["html_content"])
+        rss_data = extract_article(rss_data)
+        if rss_data["summary_text_ratio"] > 1.1:
+            self.logger.warning(
+                f"Weird Summary/Text ratio {rss_data['summary_text_ratio']}"
+            )
 
         self.store([rss_data])
 
     def parse_article(self, response):
-        parse_article(response)
+        return parse_article(response)

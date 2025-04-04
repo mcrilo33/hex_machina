@@ -40,6 +40,12 @@ class TinyDBStorageService(StorageService):
     def get_table(self, table_name):
         return self.db.table(table_name)
 
+    def get_by_url(self, table_name, url: str):
+        table = self.get_table(table_name)
+        q = Query()
+        result = table.get(q.url == url)
+        return result
+
     def get_by_name(self, table_name, name: str):
         table = self.get_table(table_name)
         q = Query()
