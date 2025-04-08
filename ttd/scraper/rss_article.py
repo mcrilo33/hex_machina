@@ -14,15 +14,12 @@ def parse_article(entry: dict) -> dict:
     """
     Normalize RSS entry into a structured article dict.
     """
-    url = entry.get("link")
-    if not url:
-        url = entry.get("url")
     return {
         "title": entry.get("title"),
         "author": entry.get("author", entry.get("dc_creator", "")),
         "published_date": entry.get("published", entry.get("updated", "")),
         "url_domain": extract_domain(entry.get("link")),
-        "url": url,
+        "url": entry.get("link", entry.get("url")),
         "summary": entry.get("summary", entry.get("description", "")),
         "tags":
             [tag["term"] for tag in entry.get("tags", [])]
