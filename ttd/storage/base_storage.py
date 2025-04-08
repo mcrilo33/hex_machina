@@ -37,19 +37,13 @@ class TinyDBStorageService(StorageService):
         self.db_path = db_path
         self.db = TinyDB(db_path)
 
-    def get_table(self, table_name):
+    def get_table(self, table_name: str):
         return self.db.table(table_name)
-
-    def get_by_url(self, table_name, url: str):
+    
+    def get_by_field(self, table_name: str, field_name: str, field_value: str):
         table = self.get_table(table_name)
         q = Query()
-        result = table.get(q.url == url)
-        return result
-
-    def get_by_name(self, table_name, name: str):
-        table = self.get_table(table_name)
-        q = Query()
-        result = table.get(q.name == name)
+        result = table.get(q[field_name] == field_value)
         return result
 
     def insert(self, table_name, data):
@@ -59,19 +53,30 @@ class TinyDBStorageService(StorageService):
         else:
             table.insert(data)
 
-    def update(self, table_name, data, query_field, query_value):
+    def update(self, table_name, data):
+        if "doc_id" not in data:
+            raise ValueError("The object must contain a 'doc_id' field.")
+
+        doc_id = data["doc_id"]
         table = self.get_table(table_name)
-        q = Query()
-        table.update(data, q[query_field] == query_value)
+        existing_doc = table.get(doc_id=doc_id)
 
-    def delete_field_from_table(self, table_name: str, field_to_delete: str):
-        table = self.get_table(table_name)
+        if not existing_doc:
+            raise ValueError(f"No document found in '{table_name}' with doc_id {doc_id}")
 
-        def remove_field(doc):
-            if field_to_delete in doc:
-                del doc[field_to_delete]
+        # Compute keys to remove
+        keys_to_remove = set(existing_doc.keys()) - set(data.keys())
+        # Update fields and remove obsolete ones
+        def update_doc(doc):
+            # Remove fields
+            for key in keys_to_remove:
+                doc.pop(key, None)
+            # Set new values
+            for key, value in obj.items():
+                if key != "doc_id":  # Skip doc_id
+                    doc[key] = value
 
-        table.update(remove_field)
+        table.update(update_doc, doc_ids=[doc_id])
 
     def delete(self, table_name, query_field, query_value):
         table = self.get_table(table_name)

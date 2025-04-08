@@ -12,65 +12,39 @@ class TextFileManager:
         """
         self.base_dir = os.path.abspath(os.path.join(os.path.dirname(base_dir), "raw"))
 
-    def _build_paths(self, url: str, timestamp: str):
-        dt = datetime.fromisoformat(timestamp)
-        safe_url = quote(url, safe="")
-
+    def _build_paths(self, table_name: str, filename: str):
+        filename = f"{filename}.txt"
+        dt = datetime.utcnow()
         year = str(dt.year)
         month = f"{dt.month:02d}"
-        base_path = os.path.join(self.base_dir, year, month)
+
+        base_path = os.path.join(self.base_dir, table_name, year, month)
         os.makedirs(base_path, exist_ok=True)
+        filepath = os.path.join(base_path, filename)
+        return filepath
 
-        html_filename = f"{safe_url}_raw.html"
-        text_filename = f"{safe_url}_extracted.txt"
+    def save(self, table_name: str, field_name: str, obj: dict) -> dict:
+        assert field_name in obj
 
-        html_path = os.path.join(base_path, html_filename)
-        text_path = os.path.join(base_path, text_filename)
+        filepath = self._build_paths(
+            table_name,
+            str(article["doc_id"]) + '_' + field_name
+        )
 
-        return html_path, text_path
-
-    def store_article_files(self, article: dict) -> dict:
-        assert "html_content" in article
-        assert "text_content" in article
-        assert "url" in article
-
-        article["created_at"] = datetime.utcnow().isoformat()
-
-        html_path, text_path = self._build_paths(
-            article["url"], article["created_at"])
-
-        # Write HTML
         try:
-            with open(html_path, "w", encoding="utf-8") as f:
-                f.write(article["html_content"])
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(obj[field_name])
         except OSError as e:
-            logger.error(f"Failed writing HTML to {html_path}: {e}")
-            return None
-        # Write extracted text
-        try:
-            with open(text_path, "w", encoding="utf-8") as f:
-                f.write(article["text_content"])
-        except OSError as e:
-            logger.error(f"Failed writing HTML to {html_path}: {e}")
+            logger.error(f"Failed writing HTML to {filepath}: {e}")
             return None
 
-        article["html_content_path"] = html_path
-        article["text_content_path"] = text_path
-        del article["html_content"]
-        del article["text_content"]
+        obj[field_name + '_path'] = filepath
+        del obj[field_name]
 
-        return article
+        return obj
 
-    def read_html(self, article: dict) -> str:
-        assert "html_content_path" in article
-        full_path = os.path.abspath(article["html_content_path"])
-
-        with open(full_path, "r", encoding="utf-8") as f:
-            return f.read()
-
-    def read_text(self, article: dict) -> str:
-        assert "text_content_path" in article
-        full_path = os.path.abspath(article["text_content_path"])
+    def load(self, field_name: str, obj: dict) -> str:
+        full_path = os.path.abspath(obj[field_name])
 
         with open(full_path, "r", encoding="utf-8") as f:
             return f.read()

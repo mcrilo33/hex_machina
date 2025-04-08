@@ -18,100 +18,53 @@ class TTDStorage(TinyDBStorageService):
         self.model_manager = ModelManager(self)
         self.file_manager = TextFileManager(db_path)
 
-    # --- Articles ---
-    def save_articles(self, articles: List[dict]):
-        for article in articles:
-            start_time = time.time()
-            article = self.file_manager.store_article_files(article)
-            elapsed_time = time.time() - start_time
-            article["execution_time"] = int(elapsed_time)
-        self.insert("articles", articles)
+    def save(self, table_name: str, objects):
+        if not isinstance(objects, list):
+            objects = [objects]
+        result = []
+        for obj in objects:
+            obj["created_at"] = datetime.utcnow().isoformat()
+            if table_name == "articles":
+                obj = self.file_manager.save(
+                    "articles",
+                    "text_content",
+                    obj
+                )
+                obj = self.file_manager.save(
+                    "articles",
+                    "html_content",
+                    obj
+                )
+            if table_name == "models":
+                self.model_manager.save(model)
+                obj['last_updated'] = obj['created_at']
+            result.append(obj)
+        self.insert(table_name, result)
+    
+    def load(self, field_name: str, objects):
+        if field_name not in [
+            "html_content",
+            "text_content",
+            "model_instance"
+        ]:
+            return objects
+        if not isinstance(objects, list):
+            objects = [objects]
+        result = []
+        for obj in objects:
+            if field_name=="html_content" or field_name=="text_content":
+                obj[field_name] = self.file_manager.load(field_name + '_path', obj)
+            if field_name=="model_instance":
+                obj[field_name] = self.model_manager.load_model(obj)
+            result.append(obj)
+        if len(result)==1:
+            return result[0]
+        return result
 
-    def get_article_by_id(self, article_id):
-        return self.get_table("articles").get(doc_id=article_id)
-
-    def get_article_by_url(self, url):
-        article = self.get_by_url('articles', url)
-        return article
-
-    def from_article_get_html(self, article):
-        return self.file_manager.read_html(article)
-
-    def from_article_get_text(self, article):
-        return self.file_manager.read_text(article)
-
-    # --- Models ---
-    def save_model(self, model: dict):
-        assert 'name' in model
-        self.model_manager.save_model(model)
-        self.insert('models', model)
-
-    def update_model(self, model: dict):
-        self.model_manager.update_model(model)
-        for key, value in model.items():
-            self.update('models', model, key, value)
-
-    def get_model_by_name(self, name: str):
-        model = self.get_by_name('models', name)
-        return model
-
-    def load_model_by_name(self, name: str):
-        model = self.get_model_by_name(name)
-        model["model_instance"] = self.model_manager.load_model(model)
-        return model
-
-    def get_input_from_article(self, article: dict, input: str):
-        fields = input.split(",")
-        input = []
-        for field in fields:
-            if field == "html_content":
-                input.append(self.from_article_get_html(article))
-            elif field == "text_content":
-                input.append(self.from_article_get_text(article))
-            elif field in article:
-                input.append(article[field])
-            else:
-                raise ValueError(f"Invalid input field: {field}")
-
-        if len(input) == 1:
-            return input[0]
-
-        return input
-
-    def run_model_on_articles(self, model, articles, save=True):
-        assert "model_instance" in model
-        instance = model["model_instance"]
-        assert hasattr(instance, "predict"), \
-            f"Model '{instance}' must implement .predict()"
-
-        predictions = []
-        for article in articles:
-            input = self.get_input_from_article(article, model["input_format"])
-            start_time = time.time()
-            output = instance.predict(input)
-            elapsed_time = time.time() - start_time
-
-            predictions.append({
-                "article_id": article.doc_id,
-                "model_id": model.doc_id,
-                "task_type": model["output_format"],
-                "output": output,
-                "created_at": datetime.utcnow().isoformat(),
-                "execution_time": int(elapsed_time)
-            })
-
-        if save:
-            self.save_predictions(predictions)
-
-        return predictions
-
-    # --- Tags ---
-    def save_tag(self, tag: dict):
-        self.insert("tags", tag)
-
-    # --- Predictions ---
-    def save_predictions(self, predictions: List[dict]):
-        for prediction in predictions:
-            self.insert("predictions", prediction)
-
-    # --- Concepts ---
+    def update(self, table_name: str, objects):
+        if not isinstance(objects, list):
+            objects = [objects]
+        for obj in objects:
+            obj['last_updated'] = datetime.utcnow().isoformat()
+            table.update(update_doc, obc)
+    

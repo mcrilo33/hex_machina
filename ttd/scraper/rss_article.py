@@ -1,3 +1,4 @@
+import time
 import feedparser
 import scrapy
 from scrapy.exceptions import CloseSpider
@@ -29,8 +30,9 @@ def parse_article(entry: dict) -> dict:
     }
 
 
-def extract_article(entry: dict) -> dict:
+def extract_article(self, entry: dict) -> dict:
     assert "html_content" in entry
+    start_time = time.time()
     entry["text_content"] = extract_markdown_from_html(entry["html_content"])
     entry["html_content_length"] = len(entry["html_content"])
     entry["text_content_length"] = len(entry["text_content"])
@@ -38,6 +40,11 @@ def extract_article(entry: dict) -> dict:
     entry["summary_length"] = len(entry["summary"])
     entry["summary_text_ratio"] = \
         entry["summary_length"]/entry["text_content_length"]
+    elapsed_time = time.time() - start_time
+    entry["execution_time"] = int(elapsed_time)
+    if entry["summary_text_ratio"] > 1.1:
+        ratio = entry['summary_text_ratio']
+        self.logger.warning(f"Weird Summary/Text ratio {ratio}")
     return entry
 
 
@@ -74,13 +81,7 @@ class StealthRSSArticleScraper(BaseArticleScraper):
                                 "Reached 2 calls to parse; stopping spider."
                             )
                         normalized["html_content"] = html
-                        normalized = extract_article(normalized)
-                        if normalized["summary_text_ratio"] > 1.1:
-                            ratio = normalized['summary_text_ratio']
-                            self.logger.warning(
-                                f"Weird Summary/Text ratio {ratio}"
-                            )
-                        normalized["text_content"] = extract_markdown_from_html(html)
+                        normalized = extract_article(self, normalized)
                         self.store([normalized])
         return iter([])
 
@@ -199,12 +200,7 @@ class RSSArticleScraper(BaseArticleScraper):
 
         rss_data = response.meta.get("rss_data", {})
         rss_data["html_content"] = response.text
-        rss_data = extract_article(rss_data)
-        if rss_data["summary_text_ratio"] > 1.1:
-            self.logger.warning(
-                f"Weird Summary/Text ratio {rss_data['summary_text_ratio']}"
-            )
-
+        rss_data = extract_article(self, rss_data)
         self.store([rss_data])
 
     def parse_article(self, response):
