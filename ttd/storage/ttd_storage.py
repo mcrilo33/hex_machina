@@ -23,6 +23,7 @@ class TTDStorage(TinyDBStorageService):
             objects = [objects]
         result = []
         for obj in objects:
+            obj["table_name"] = table_name
             obj["created_at"] = datetime.utcnow().isoformat()
             if table_name == "articles":
                 obj = self.file_manager.save(
@@ -36,7 +37,7 @@ class TTDStorage(TinyDBStorageService):
                     obj
                 )
             if table_name == "models":
-                self.model_manager.save(model)
+                self.model_manager.save(obj)
                 obj['last_updated'] = obj['created_at']
             result.append(obj)
         self.insert(table_name, result)
@@ -55,7 +56,7 @@ class TTDStorage(TinyDBStorageService):
             if field_name=="html_content" or field_name=="text_content":
                 obj[field_name] = self.file_manager.load(field_name + '_path', obj)
             if field_name=="model_instance":
-                obj[field_name] = self.model_manager.load_model(obj)
+                obj[field_name] = self.model_manager.load(obj)
             result.append(obj)
         if len(result)==1:
             return result[0]
@@ -66,5 +67,5 @@ class TTDStorage(TinyDBStorageService):
             objects = [objects]
         for obj in objects:
             obj['last_updated'] = datetime.utcnow().isoformat()
-            table.update(update_doc, obc)
+            self.update_single(table_name, obj)
     

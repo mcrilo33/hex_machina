@@ -2,10 +2,11 @@
 Submodule for all enriching logic.
 """
 
-from .pipeline import QueryInput, Pipe, Pipeline
+from .pipeline import Pipe, Pipeline
+from .alpha_pipeline import get_alpha_pipeline
 
 __all__ = [
-    "QueryInput"
     "Pipe",
-    "Pipeline"
+    "Pipeline",
+    "get_alpha_pipeline"
 ]

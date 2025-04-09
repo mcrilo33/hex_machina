@@ -14,3 +14,5 @@ tinydb==4.8.2
 pyyaml==6.0.2
 main_content_extractor
 dotenv
+openai
+sklearn>=1.6.1

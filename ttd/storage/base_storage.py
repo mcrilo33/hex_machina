@@ -53,11 +53,9 @@ class TinyDBStorageService(StorageService):
         else:
             table.insert(data)
 
-    def update(self, table_name, data):
-        if "doc_id" not in data:
-            raise ValueError("The object must contain a 'doc_id' field.")
+    def update_single(self, table_name, data):
 
-        doc_id = data["doc_id"]
+        doc_id = data.doc_id
         table = self.get_table(table_name)
         existing_doc = table.get(doc_id=doc_id)
 
@@ -72,7 +70,7 @@ class TinyDBStorageService(StorageService):
             for key in keys_to_remove:
                 doc.pop(key, None)
             # Set new values
-            for key, value in obj.items():
+            for key, value in data.items():
                 if key != "doc_id":  # Skip doc_id
                     doc[key] = value
 

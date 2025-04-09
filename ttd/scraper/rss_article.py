@@ -55,8 +55,8 @@ class StealthRSSArticleScraper(BaseArticleScraper):
     parse_count = 0
 
     def start_requests(self):
-        from ttd.config import load_config
-        config = load_config()
+        from ttd.config import load_config_and_dotenv
+        config = load_config_and_dotenv()
         DEBUG = config["debug"]
         for feed_url in self.start_urls:
             feed = feedparser.parse(feed_url)
@@ -184,12 +184,12 @@ class RSSArticleScraper(BaseArticleScraper):
         Called for each full article page.
         You can enrich the original RSS data with full HTML content here.
         """
-        from ttd.config import load_config
+        from ttd.config import load_config_and_dotenv
 
         if response.status != 200:
             self.logger.warning(f"Non-200 status {response.status} for {response.url}")
             return
-        config = load_config()
+        config = load_config_and_dotenv()
         DEBUG = config["debug"]
         self.parse_count += 1
         if DEBUG and self.parse_count > 2:

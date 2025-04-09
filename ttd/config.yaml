@@ -1,4 +1,4 @@
-debug: false
+debug: True
 db_path: data/ttd_tinydb.json
 feeds_path: data/rss_feeds.txt
 feeds_stealth_path: data/rss_feeds_stealth.txt

@@ -3,25 +3,26 @@ import logging
 import csv
 import os
 from datetime import datetime
-from dataclasses import dataclass
-from typing import Any, List, Dict, DefaultDict
+from typing import Any, List, Dict, DefaultDict, Callable
 from collections import defaultdict
+from ttd.utils import safe_pretty_print
 
-@dataclass
-class QueryInput:
-    source: str   # e.g., "ARTICLES"
-    alias: str    # e.g., "article"
-    data: list    # e.g., list of documents
 
 class Pipe:
-    def __init__(self, name: str, queries: List[QueryInput], model: Dict, storage_service: Any):
+    def __init__(self, name: str, query: Callable[[Any], List[dict]], model: Dict, storage_service: Any, debug: bool = False):
         self.name = name
-        self.queries = queries
+        self.query_func = query
         self.model = model
         self.storage = storage_service
+        self.debug = debug
         self.logger = logging.getLogger(f"Pipe.{self.name}")
         self.usage_summary: DefaultDict[str, float] = defaultdict(float)
         self.total_predictions: int = 0
+        self.items: List[dict] = []
+
+        if debug:
+            openai_logger = logging.getLogger("openai")
+            openai_logger.setLevel(logging.WARNING)
 
     def validate_model(self):
         assert "model_instance" in self.model, "Missing 'model_instance' in model"
@@ -30,57 +31,30 @@ class Pipe:
         assert hasattr(instance, "predict"), f"Model '{instance}' must implement .predict()"
         return instance
 
-    def get_items_from_queries(self):
-        if len(self.queries) == 1:
-            return self.queries[0].data
-
-        length = len(self.queries[0].data)
-        return [
-            {query.alias: query.data[i] for query in self.queries}
-            for i in range(length)
-        ]
-
     def get_inputs_from_item(self, item: Any, input_format: str):
         fields = input_format.split(",")
-        item = item if isinstance(item, list) else [item]
         inputs = []
 
-        for sub_item in item:
-            input_data = {}
-            for field in fields:
-                obj = sub_item
-                nested_fields = field.split("__")
+        input_data = {}
+        for field in fields:
+            obj = item
+            nested_fields = field.split("__")
 
-                for nested_field in nested_fields[:-1]:
-                    obj = obj[nested_field]
+            for nested_field in nested_fields[:-1]:
+                obj = obj[nested_field]
 
-                final_field = nested_fields[-1]
-                if final_field in obj:
-                    input_data[field] = obj[final_field]
-                else:
-                    raise ValueError(f"Invalid input field: '{field}' not in {obj}")
-            inputs.append(input_data)
+            final_field = nested_fields[-1]
+            if final_field in obj:
+                input_data[field] = obj[final_field]
+            else:
+                raise ValueError(f"Invalid input field: '{field}' not in {obj}")
+        inputs.append(input_data)
 
         return inputs[0] if len(inputs) == 1 else inputs
 
-    def build_input_refs(self, item):
-        input_refs = {}
-
-        for query in self.queries:
-            value = item[query.alias] if len(self.queries) > 1 else item
-            if isinstance(value, dict):
-                input_refs[query.alias] = {
-                    "table_name": query.source,
-                    "doc_id": value.doc_id
-                }
-            else:
-                raise ValueError(f"Invalid input object for query: {query.alias}")
-
-        return input_refs
-
     def run(self, save: bool = False, pipeline_name: str = None):
+        self.items = self.query_func(self.storage)
         instance = self.validate_model()
-        items = self.get_items_from_queries()
         predictions = []
 
         self.usage_summary.clear()
@@ -88,35 +62,55 @@ class Pipe:
 
         total_time = 0.0
         self.logger.info("==============================")
-        self.logger.info(f"Running model: {instance.__class__.__name__} on {len(items)} item(s)")
+        self.logger.info(f"Running model: {instance.__class__.__name__} on {len(self.items)} item(s)")
 
-        for idx, item in enumerate(items):
+        if self.debug:
+            self.logger.debug(f"Model Configuration:\n{safe_pretty_print(self.model)}")
+
+        for idx, item in enumerate(self.items):
             inputs = self.get_inputs_from_item(item, self.model["input_format"])
-            self.logger.debug(f"[{idx+1}/{len(items)}] Inputs: {inputs}")
+            if self.debug:
+                self.logger.debug(f"[{idx+1}/{len(self.items)}]\nInputs: \n{safe_pretty_print(inputs)}\n")
             start_time = time.time()
             output = instance.predict(inputs)
             elapsed_time = time.time() - start_time
             total_time += elapsed_time
-            self.logger.info(f"[{idx+1}/{len(items)}] Prediction done in {elapsed_time:.2f}s")
+            self.logger.info(f"[{idx+1}/{len(self.items)}] Prediction done in {elapsed_time:.2f}s")
 
             metadata = output.get("metadata", {})
             for key, value in metadata.items():
                 if isinstance(value, (int, float)):
                     self.usage_summary[key] += value
-                    self.logger.info(f"[{idx+1}/{len(items)}] {key}: {value}")
+                    if self.debug:
+                        self.logger.info(f"[{idx+1}/{len(self.items)}] {key}: {value}")
+            input_refs = {}
+            for key, value in item.items():
+                import ipdb; ipdb.set_trace()
+                if "table_name" in value:
+                    input_refs[key] = {
+                        "table_name": value["table_name"],
+                        "doc_id": value.doc_id
+                    } 
+                else:
+                    raise ValueError(f"{key} outside of the storage.")
 
             prediction = {
-                "model_id": self.model.get("doc_id"),
+                "model_id": self.model.doc_id,
                 "task_type": self.model.get("output_format"),
                 "created_at": datetime.utcnow().isoformat(),
                 "execution_time": int(elapsed_time),
-                "input_refs": self.build_input_refs(item),
+                "input_refs": input_refs,
                 "pipe_name": self.name,
                 "pipeline_name": pipeline_name
             }
             for key, value in output.items():
                 prediction[key] = value
             predictions.append(prediction)
+
+            if self.debug:
+                self.logger.debug(f"[{idx+1}/{len(self.items)}] Prediction:\n{safe_pretty_print(prediction)}\n")
+                self.logger.debug(f"DEBUG MODE !!!  Stop Pipeline {self.name}")
+                break
 
         self.total_predictions = len(predictions)
 
@@ -134,11 +128,13 @@ class Pipe:
         self.logger.info("==============================")
         return predictions
 
+
 class Pipeline:
-    def __init__(self, name: str, pipes: List[Pipe]):
+    def __init__(self, name: str, pipes: List[Pipe], debug: bool = False):
         self.name = name
         self.pipes = pipes
-        logging.basicConfig(level=logging.INFO)
+        self.debug = debug
+        logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
         self.logger = logging.getLogger(f"Pipeline.{self.name}")
         self.usage_summary: DefaultDict[str, float] = defaultdict(float)
         self.total_predictions: int = 0
