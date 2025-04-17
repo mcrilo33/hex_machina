@@ -40,7 +40,7 @@ class TTDStorage(TinyDBStorageService):
                 self.model_manager.save(obj)
                 obj['last_updated'] = obj['created_at']
             result.append(obj)
-        self.insert(table_name, result)
+        return self.insert(table_name, result)
     
     def load(self, field_name: str, objects):
         if field_name not in [
