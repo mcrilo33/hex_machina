@@ -25,7 +25,7 @@ def run_enricher_routine():
     pipeline = get_alpha_pipeline(storage, debug=DEBUG)
 
     # Run the pipeline
-    predictions = pipeline.run(save=True)
+    predictions = pipeline.run(save=False)
 
     # Update enrichment timestamp
     if not DEBUG:
