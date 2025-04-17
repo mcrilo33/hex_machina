@@ -49,9 +49,9 @@ class TinyDBStorageService(StorageService):
     def insert(self, table_name, data):
         table = self.get_table(table_name)
         if isinstance(data, list):
-            table.insert_multiple(data)
+            return table.insert_multiple(data)
         else:
-            table.insert(data)
+            return table.insert(data)
 
     def update_single(self, table_name, data):
 
@@ -80,6 +80,10 @@ class TinyDBStorageService(StorageService):
         table = self.get_table(table_name)
         q = Query()
         table.remove(q[query_field] == query_value)
+    
+    def remove(self, table_name, doc_ids):
+        table = self.get_table(table_name)
+        return table.remove(doc_ids=doc_ids)
 
     def get_all(self, table_name):
         return self.get_table(table_name).all()
