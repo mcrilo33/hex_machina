@@ -31,7 +31,7 @@ def dummy_model():
             "openai": {
                 "api_key_env_var": "FAKE_API_KEY",
                 "base_url": "http://localhost",
-                "model": "gpt-3"
+                "model_name": "gpt-3"
             }
         },
         "input_format": "text_content",

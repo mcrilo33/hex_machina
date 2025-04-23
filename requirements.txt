@@ -16,3 +16,8 @@ main_content_extractor
 dotenv
 openai
 sklearn>=1.6.1
+graphviz
+evaluate
+rouge-score
+absl-py
+bert_score

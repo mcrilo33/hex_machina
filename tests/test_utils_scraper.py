@@ -1,5 +1,5 @@
 import pytest
-from ttd.scraper.utils import extract_domain, extract_markdown_from_html
+from ttd.ingestion.parser import extract_domain, extract_markdown_from_html
 
 
 @pytest.mark.parametrize("url,expected_domain", [

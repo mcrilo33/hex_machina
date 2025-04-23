@@ -4,7 +4,7 @@ import scrapy
 from scrapy.exceptions import CloseSpider
 from scrapy_playwright.page import PageMethod
 from .base_article import BaseArticleScraper
-from .utils import extract_domain, extract_markdown_from_html, clean_markdown
+from .parser import extract_domain, extract_markdown_from_html, clean_markdown
 
 from playwright.sync_api import sync_playwright
 from playwright_stealth import stealth_sync
@@ -55,8 +55,8 @@ class StealthRSSArticleScraper(BaseArticleScraper):
     parse_count = 0
 
     def start_requests(self):
-        from ttd.config import load_config_and_dotenv
-        config = load_config_and_dotenv()
+        from ttd.utils.config import load_config
+        config = load_config()
         DEBUG = config["debug"]
         for feed_url in self.start_urls:
             feed = feedparser.parse(feed_url)
@@ -184,12 +184,12 @@ class RSSArticleScraper(BaseArticleScraper):
         Called for each full article page.
         You can enrich the original RSS data with full HTML content here.
         """
-        from ttd.config import load_config_and_dotenv
+        from ttd.utils.config import load_config
 
         if response.status != 200:
             self.logger.warning(f"Non-200 status {response.status} for {response.url}")
             return
-        config = load_config_and_dotenv()
+        config = load_config()
         DEBUG = config["debug"]
         self.parse_count += 1
         if DEBUG and self.parse_count > 2:

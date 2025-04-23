@@ -1,0 +1,15 @@
+digraph beta_enrichment_pipeline {
+	graph [rankdir=TB]
+	is_ai_step [fillcolor=lightgray shape=box style=filled]
+	dense_summary_step [fillcolor=lightgray shape=box style=filled]
+	core_line_summary_step [fillcolor=lightgray shape=box style=filled]
+	tagger_step [fillcolor=lightgray shape=box style=filled]
+	transform_tags_step [fillcolor=lightgray shape=box style=filled]
+	transform_clusters_step [fillcolor=lightgray shape=box style=filled]
+	replicate_articles_step [fillcolor=lightgray shape=box style=filled]
+	article -> is_ai_step [label="article:1"]
+	article -> replicate_articles_step [label="article:1"]
+	is_ai_step -> replicate_articles_step [label="predictions:is_ai_step-simulated-1745396537"]
+	replicated_articles__beta_enrichment_pipeline [fillcolor=white shape=oval style=filled]
+	replicate_articles_step -> replicated_articles__beta_enrichment_pipeline [label="replicate_articles_step-simulated-1745396564"]
+}

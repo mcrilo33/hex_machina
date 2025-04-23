@@ -1,5 +1,6 @@
 import pprint
 
+
 def safe_pretty_print(obj, max_len=50):
     def truncate(v):
         if isinstance(v, str) and len(v) > max_len:

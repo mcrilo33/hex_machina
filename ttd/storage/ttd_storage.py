@@ -1,7 +1,9 @@
 import time
 from datetime import datetime
 from typing import List
+from pathlib import Path
 from .base_storage import TinyDBStorageService
+from .artifact_manager import ArtifactManager
 
 
 class TTDStorage(TinyDBStorageService):
@@ -9,63 +11,84 @@ class TTDStorage(TinyDBStorageService):
     Unified storage interface for the full TTD application.
     Manages all entity tables (articles, models, tags, predictions, etc.)
     using TinyDB as backend.
+    Automatically handles large object persistence using ArtifactManager.
     """
 
     def __init__(self, db_path):
         super().__init__(db_path)
-        from ttd.storage.model_manager import ModelManager
-        from ttd.storage.text_file_manager import TextFileManager
-        self.model_manager = ModelManager(self)
-        self.file_manager = TextFileManager(db_path)
+
+        artifact_dir = Path(db_path).parent / "artifacts"
+        self.artifacts = ArtifactManager(base_path=str(artifact_dir))
+
+    def _serialize_datetimes(self, obj: dict) -> dict:
+        def serialize(value):
+            if isinstance(value, datetime):
+                return value.isoformat()
+            elif isinstance(value, dict):
+                return {k: serialize(v) for k, v in value.items()}
+            elif isinstance(value, list):
+                return [serialize(v) for v in value]
+            return value
+
+        return serialize(obj)
 
     def save(self, table_name: str, objects):
         if not isinstance(objects, list):
             objects = [objects]
+
         result = []
         for obj in objects:
             obj["table_name"] = table_name
             obj["created_at"] = datetime.utcnow().isoformat()
-            if table_name == "articles":
-                obj = self.file_manager.save(
-                    "articles",
-                    "text_content",
-                    obj
-                )
-                obj = self.file_manager.save(
-                    "articles",
-                    "html_content",
-                    obj
-                )
+
+            # Handle model-specific logic
             if table_name == "models":
-                self.model_manager.save(obj)
-                obj['last_updated'] = obj['created_at']
+                # TODO self.model_manager.save(obj)
+                obj["last_updated"] = obj["created_at"]
+
+            # Automatically offload large or structured fields
+            obj = self.artifacts.save_large_fields(
+                obj,
+                table_name=table_name,
+                timestamp=obj["created_at"]
+            )
+
             result.append(obj)
-        return self.insert(table_name, result)
-    
-    def load(self, field_name: str, objects):
-        if field_name not in [
-            "html_content",
-            "text_content",
-            "model_instance"
-        ]:
-            return objects
-        if not isinstance(objects, list):
-            objects = [objects]
-        result = []
-        for obj in objects:
-            if field_name=="html_content" or field_name=="text_content":
-                obj[field_name] = self.file_manager.load(field_name + '_path', obj)
-            if field_name=="model_instance":
-                obj[field_name] = self.model_manager.load(obj)
-            result.append(obj)
-        if len(result)==1:
-            return result[0]
-        return result
+
+        return [str(id) for id in self.insert(table_name, result)]
 
     def update(self, table_name: str, objects):
         if not isinstance(objects, list):
             objects = [objects]
+
         for obj in objects:
-            obj['last_updated'] = datetime.utcnow().isoformat()
+            obj["last_updated"] = datetime.utcnow().isoformat()
+            obj = self.artifacts.save_large_fields(
+                obj,
+                table_name=table_name,
+                timestamp=obj["last_updated"]
+            )
             self.update_single(table_name, obj)
+
+    def get_all(self, table_name: str):
+        table = super().get_table(table_name)
+        return [
+            self.artifacts.lazy_load_fields({**record, "doc_id": str(record.doc_id)})
+            for record in table
+        ]
+
+    def get_by_field(self, table_name: str, field_name: str, field_value: str):
+        table = super().get_table(table_name)
+        from tinydb import Query
+        q = Query()
+        for record in table.search(q[field_name] == field_value):
+            return self.artifacts.lazy_load_fields({**record, "doc_id": str(record.doc_id)})
+        return None
     
+    def search(self, table_name: str, query):
+        table = super().get_table(table_name)
+        results = table.search(query)
+        return [
+            self.artifacts.lazy_load_fields({**record, "doc_id": str(record.doc_id)})
+            for record in results
+        ]

@@ -54,8 +54,10 @@ class TinyDBStorageService(StorageService):
             return table.insert(data)
 
     def update_single(self, table_name, data):
+        doc_id = int(data.get("doc_id"))
+        if not doc_id:
+            raise ValueError("Missing 'doc_id' for update operation.")
 
-        doc_id = data.doc_id
         table = self.get_table(table_name)
         existing_doc = table.get(doc_id=doc_id)
 
@@ -64,6 +66,7 @@ class TinyDBStorageService(StorageService):
 
         # Compute keys to remove
         keys_to_remove = set(existing_doc.keys()) - set(data.keys())
+
         # Update fields and remove obsolete ones
         def update_doc(doc):
             # Remove fields

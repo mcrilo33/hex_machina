@@ -1,6 +1,6 @@
 import pytest
 from scrapy.http import HtmlResponse, Request
-from ttd.scraper.rss_article import RSSArticleScraper, parse_article
+from ttd.ingestion.rss_article import RSSArticleScraper, parse_article
 from unittest.mock import patch
 
 

@@ -4,11 +4,11 @@ import os
 import shutil
 from datetime import datetime
 import yaml
-from ttd.config import update_config, load_config_and_dotenv, CONFIG_FILE
+from ttd.utils.config import update_config, load_config, CONFIG_FILE
 
 
 def test_config_has_required_fields():
-    config = load_config_and_dotenv()
+    config = load_config()
 
     assert "db_path" in config, "Missing 'db_path' in data section"
     assert "last_scrape" in config, "Missing 'last_scrape' in data section"
@@ -21,7 +21,7 @@ def test_config_has_required_fields():
         assert isinstance(config["last_scrape"], str)
 
 def test_last_scrape_file_can_be_parsed_or_null():
-    config = load_config_and_dotenv()
+    config = load_config()
     path = config["last_scrape"]
 
     if not path:
@@ -44,7 +44,7 @@ def temp_config_file(tmp_path):
 
     # Patch CONFIG_FILE to point to this temp file
     original_path = CONFIG_FILE
-    import ttd.config as config_module
+    import ttd.utils.config as config_module
     config_module.CONFIG_FILE = temp_file
     yield temp_file
 
@@ -59,7 +59,7 @@ def test_update_config_modifies_yaml(temp_config_file):
         "last_scrape": test_value
     })
 
-    config = load_config_and_dotenv()
+    config = load_config()
     assert config["last_scrape"] == test_value
 
     # Also directly load the YAML to verify it was saved to disk

@@ -2,11 +2,11 @@ import os
 from datetime import datetime
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
-from ttd.scraper.rss_article import RSSArticleScraper, StealthRSSArticleScraper
+from ttd.ingestion.rss_article import RSSArticleScraper, StealthRSSArticleScraper
 from ttd.storage.ttd_storage import TTDStorage
-from ttd.config import load_config_and_dotenv, update_config
+from ttd.utils.config import load_config, update_config
 
-config = load_config_and_dotenv()
+config = load_config()
 DB_PATH = os.path.abspath(config.get("db_path"))
 LAST_SCRAPE_DATE = config.get("last_scrape")
 if LAST_SCRAPE_DATE and not DEBUG:

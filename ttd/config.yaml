@@ -1,5 +1,7 @@
-debug: True
-db_path: data/ttd_tinydb.json
-feeds_path: data/rss_feeds.txt
-feeds_stealth_path: data/rss_feeds_stealth.txt
+debug: False
+persist: True
+data_dir: /Users/mathieucrilout/Repos/train_tune_deploy/data
+db_path: /Users/mathieucrilout/Repos/train_tune_deploy/data/ttd_tinydb.json
+feeds_path: /Users/mathieucrilout/Repos/train_tune_deploy/data/rss_feeds.txt
+feeds_stealth_path: /Users/mathieucrilout/Repos/train_tune_deployd/data/rss_feeds_stealth.txt
 last_scrape: '2025-04-04T13:22:35.503007'

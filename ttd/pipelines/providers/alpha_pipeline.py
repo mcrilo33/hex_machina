@@ -3,12 +3,11 @@ from datetime import datetime
 from dateutil.parser import parse as parse_date
 from dateutil.relativedelta import relativedelta
 from ttd.storage.ttd_storage import TTDStorage
-from ttd.config import load_config_and_dotenv
-from .pipeline import PredictPipe, TransformPipe, Pipeline
-from tinydb import TinyDB, Query
+from ttd.utils.config import load_config
+from ttd.pipelines.core import PredictStep, TransformStep, Pipeline
 
 
-config = load_config_and_dotenv()
+config = load_config()
 DB_PATH = config.get("db_path")
 storage = TTDStorage(DB_PATH)
 
@@ -142,7 +141,7 @@ ai_classifier_template = {
     "config": {
         "openai": {
             "base_url": "https://openrouter.ai/api/v1",
-            "model": "deepseek/deepseek-r1-distill-qwen-32b:free",
+            "model_name": "deepseek/deepseek-r1-distill-qwen-32b:free",
             "api_key_env_var": "OPEN_ROUTER_API_KEY",
             "template": AI_CLASSIFIER_PROMPT,
             "temperature": 0,
@@ -160,7 +159,7 @@ dense_summarizer_template = {
     "config": {
         "openai": {
             "base_url": "https://openrouter.ai/api/v1",
-            "model": "deepseek/deepseek-r1-distill-qwen-32b:free",
+            "model_name": "deepseek/deepseek-r1-distill-qwen-32b:free",
             "api_key_env_var": "OPEN_ROUTER_API_KEY",
             "template": DENSE_SUMMARIZER_PROMPT,
             "temperature": 0,
@@ -178,7 +177,7 @@ core_line_summarizer_template = {
     "config": {
         "openai": {
             "base_url": "https://openrouter.ai/api/v1",
-            "model": "deepseek/deepseek-r1-distill-qwen-32b:free",
+            "model_name": "deepseek/deepseek-r1-distill-qwen-32b:free",
             "api_key_env_var": "OPEN_ROUTER_API_KEY",
             "template": CORE_LINE_SUMMARIZER_PROMPT,
             "temperature": 0,
@@ -196,7 +195,7 @@ tagger_template = {
     "config": {
         "openai": {
             "base_url": "https://openrouter.ai/api/v1",
-            "model": "deepseek/deepseek-r1-distill-qwen-32b:free",
+            "model_name": "deepseek/deepseek-r1-distill-qwen-32b:free",
             "api_key_env_var": "OPEN_ROUTER_API_KEY",
             "template": TAGGER_PROMPT,
             "temperature": 0,
@@ -213,7 +212,7 @@ tag_embedding_template = {
     "output_format": "tag_embedding",
     "config": {
         "openai_embedding": {
-            "model": "text-embedding-3-large",
+            "model_name": "text-embedding-3-large",
             "api_key_env_var": "OPENAI_API_KEY",
             "cache_path": os.path.abspath(
                 os.path.join(
@@ -517,21 +516,21 @@ def get_alpha_pipeline(storage: TTDStorage, debug: bool = False):
         return tags
 
     # Create the pipes and pipeline
-    ai_classifier_pipe = PredictPipe(
+    ai_classifier_pipe = PredictStep(
         name="ai_classifier",
         query=get_articles_after_date,
         model=ai_classifier,
         storage_service=storage,
         debug=debug
     )
-    dense_summary_pipe = PredictPipe(
+    dense_summary_pipe = PredictStep(
         name="dense_summarizer",
         query=get_articles_with_ai_predictions_after_date,
         model=dense_summarizer,
         storage_service=storage,
         debug=debug
     )
-    core_line_summary_pipe = PredictPipe(
+    core_line_summary_pipe = PredictStep(
         name="core_line_summarizer",
         query=get_articles_with_dense_summary_after_date,
         model=core_line_summarizer,
@@ -548,7 +547,7 @@ def get_alpha_pipeline(storage: TTDStorage, debug: bool = False):
                 "index": index
             })
         return results
-    tagger_pipe = PredictPipe(
+    tagger_pipe = PredictStep(
         name="tagger",
         query=get_articles_with_dense_summary_after_date,
         model=tagger,
@@ -556,28 +555,28 @@ def get_alpha_pipeline(storage: TTDStorage, debug: bool = False):
         debug=debug,
         post_process=split_tags
     )
-    update_tags_pipe = TransformPipe(
+    update_tags_pipe = TransformStep(
         name="update_tags",
         query=get_tags_after_date,
         transform=update_tag,
         storage_service=storage,
         debug=debug
     )
-    tag_embedding_pipe = PredictPipe(
+    tag_embedding_pipe = PredictStep(
         name="tag_embedding",
         query=get_tags_with_no_embedding,
         model=tag_embedding,
         storage_service=storage,
         debug=debug
     )
-    update_tag_embeding_pipe = TransformPipe(
+    update_tag_embeding_pipe = TransformStep(
         name="update_tag_embedding",
         query=get_embedding_preds_after_date,
         transform=update_tag_embedding,
         storage_service=storage,
         debug=debug
     )
-    update_tag_clusters_pipe = TransformPipe(
+    update_tag_clusters_pipe = TransformStep(
         name="update_tag_clusters",
         query=get_transformed_tags_after_date_once,
         transform=lambda item, storage: update_tag_clusters(item, storage, tag_embedding),
@@ -588,14 +587,14 @@ def get_alpha_pipeline(storage: TTDStorage, debug: bool = False):
     pipeline = Pipeline(
         name="main_pipeline",
         pipes=[
-            #ai_classifier_pipe,
+            ai_classifier_pipe,
             #dense_summary_pipe,
             #core_line_summary_pipe,
             #tagger_pipe,
             #update_tags_pipe,
             ###tag_embedding_pipe,
             ###update_tag_embeding_pipe,
-            update_tag_clusters_pipe
+            #update_tag_clusters_pipe
         ],
         debug=debug
     )
