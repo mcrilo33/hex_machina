@@ -1,7 +1,9 @@
+""" Scrapes articles from RSS feeds and saves them to the database. """
 import os
 from datetime import datetime
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
+
 from ttd.ingestion.rss_article import RSSArticleScraper, StealthRSSArticleScraper
 from ttd.storage.ttd_storage import TTDStorage
 from ttd.utils.config import load_config, update_config
@@ -14,6 +16,7 @@ if LAST_SCRAPE_DATE and not DEBUG:
 FEEDS_PATH = config.get("feeds_path")
 FEEDS_STEALTH_PATH = config.get("feeds_stealth_path")
 DEBUG = config.get("debug", False)
+
 
 def update_scrape_time():
     update_config({

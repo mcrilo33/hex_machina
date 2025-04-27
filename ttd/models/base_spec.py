@@ -1,85 +1,102 @@
-import re
-from typing import Optional, Dict, Any
-from pydantic import BaseModel, Field, field_validator
-from ttd.utils.print import safe_pretty_print
+from typing import Any, Optional, Type, TypeVar
+from pydantic import BaseModel, Field, model_validator
+
 from ttd.utils.config import load_path_resolver
+from ttd.models.providers.openai_model import OpenAIModel
+from ttd.models.providers.openai_embedding import OpenAIEmbedding
 
-
-FIELD_PATH_PATTERN = re.compile(r'^([a-zA-Z_][a-zA-Z0-9_]*)(__[a-zA-Z_][a-zA-Z0-9_]*)*$')
-
-
-def _validate_schema_format(v: str, field_name: str) -> str:
-    fields = [f.strip() for f in v.split(",") if f.strip()]
-    for field_str in fields:
-        if not FIELD_PATH_PATTERN.match(field_str):
-            raise ValueError(f"Invalid field format in `{field_name}`: '{field_str}'")
-    return v
-
-
-def _parse_schema(schema_str: str) -> Dict:
-    fields = schema_str.split(',')
-    return {f.strip(): True for f in fields if f.strip()}
+InputType = TypeVar('InputType', bound=BaseModel)
+OutputType = TypeVar('OutputType', bound=BaseModel)
+ModelConfig = TypeVar('ModelConfig', bound=BaseModel)
 
 
 class BaseSpec(BaseModel):
+    """Base class for all specs with common fields."""
     name: str = Field(..., description="Unique identifier for this spec.")
     version: str = Field(..., description="Semantic version (e.g., v1.0.0).")
-    description: Optional[str] = Field(None, description="Optional human-readable description.")
-    input_schema: str = Field(..., description="Comma-separated list of input fields (nested using '__').")
-    output_schema: str = Field(..., description="Comma-separated list of output fields (nested using '__').")
+    description: Optional[str] = \
+        Field(None, description="Optional human-readable description.")
+    input_schema: Optional[Type[InputType]] = \
+        Field(None, description="Schema for model inputs.")
+    output_schema: Optional[Type[OutputType]] = \
+        Field(None, description="Schema for model outputs.")
 
-    @field_validator("input_schema")
-    @classmethod
-    def validate_input_schema(cls, v: str) -> str:
-        return _validate_schema_format(v, "input_schema")
+    # Use model_config for Pydantic v2
+    model_config = {
+        "arbitrary_types_allowed": True,
+    }
 
-    @field_validator("output_schema")
-    @classmethod
-    def validate_output_schema(cls, v: str) -> str:
-        return _validate_schema_format(v, "output_schema")
+    def validate_input(self, data: Any) -> InputType:
+        """Validate input data against the input schema."""
+        return self.input_schema.model_validate(data)
 
-    def parsed_input_schema(self) -> Dict:
-        return _parse_schema(self.input_schema)
-
-    def parsed_output_schema(self) -> Dict:
-        return _parse_schema(self.output_schema)
+    def validate_output(self, data: Any) -> OutputType:
+        """Validate output data against the output schema."""
+        return self.output_schema.model_validate(data)
 
 
-class PromptSpec(BaseSpec):
-    template: str = Field(..., description="Jinja-style template with placeholders from input_schema.")
+class PromptTemplateSpec(BaseSpec):
+    """Specification for prompt templates."""
+    template: str = \
+        Field(..., description="Jinja-style template with " +
+                               "placeholders from input_schema.")
+    input_schema: Type[InputType] = \
+        Field(..., description="Schema for prompt inputs.")
+    output_schema: Type[OutputType] = \
+        Field(..., description="Schema for prompt outputs.")
 
 
 class ModelSpec(BaseSpec):
+    """Base class for model specifications."""
     def __init__(self, **data):
         super().__init__(**data)
-        self.config = load_path_resolver().resolve_config(self.config)
-            
+
     model_id: Optional[str] = None
-    provider: str = Field(..., description="Name of the model provider (e.g., 'openai').")
-    config: Dict[str, Any] = Field(..., description="Model configuration (temperature, etc.)")
+    provider: str = \
+        Field(..., description="Name of the model provider (e.g., 'openai').")
+    config: ModelConfig = \
+        Field(..., description="Model configuration (temperature, etc.)")
     _loaded_model: Optional[Any] = None
 
-    @property
-    def prompt(self) -> Optional[PromptSpec]:
-        if "prompt" in self.config:
-            return self.config["prompt"]
-        return None
+    def load_model(self):
+        """ Load the model instance based on the given provider and config.
+        """
 
+        if self.provider == "openai":
+            self._loaded_model = OpenAIModel(self.config)
 
-# === Prompt Compatibility Validation ===
+        elif self.provider == "openai_embedding":
+            self._loaded_model = OpenAIEmbedding(self.config)
 
-def validate_input_prompt_compatibility(model_spec: ModelSpec):
-    if model_spec.input_schema and "prompt" in model_spec.config:
-        input_fields = _parse_schema(model_spec.input_schema)
-        template = model_spec.config["prompt"].template
-        prompt_fields = re.findall(r"{([^{}]+)}", template, re.DOTALL)
+        else:
+            raise NotImplementedError(
+                f"No model provider found for given name: {self.provider}"
+            )
 
-        error_msg = f"\nINPUT FORMAT: '{model_spec.input_schema}'\nprompt: {safe_pretty_print(template)}\n"
+    @model_validator(mode='after')
+    def resolve_config_paths(self):
+        """Resolve configuration paths after model initialization."""
+        self.config = load_path_resolver().resolve_config(self.config)
+        return self
 
-        unused_inputs = [f for f in input_fields if f not in prompt_fields]
-        if unused_inputs:
-            raise ValueError(error_msg + f"Unused input fields from `input_schema`: {unused_inputs}")
+    @model_validator(mode='after')
+    def set_prompt_schemas(self):
+        """Set input and output schemas based on prompt specification
+        if available."""
+        if self.config is not None and hasattr(self.config, "prompt_spec"):
+            prompt_spec = self.config.prompt_spec
+            if prompt_spec is not None:
+                self.input_schema = prompt_spec.input_schema
+                self.output_schema = prompt_spec.output_schema
+        return self
 
-        missing_inputs = [f for f in prompt_fields if f not in input_fields]
-        if missing_inputs:
-            raise ValueError(error_msg + f"Missing input fields from `input_schema`: {missing_inputs}")
+    @model_validator(mode='before')
+    def check_schemas_presence(self):
+        """Check if input or output schema is specified
+        when there's a prompt specification."""
+        if "config" in self and hasattr(self["config"], "prompt_spec"):
+            if "input_schema" in self or "output_schema" in self:
+                raise ValueError(
+                    "Input or output schema should not be specified \
+                    when there's a prompt specification.")
+        return self

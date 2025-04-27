@@ -11,7 +11,7 @@ def test_start_requests_yields_requests_with_rss_data(fake_rss_entry):
         "execution_time": 123
     }
 
-    with patch("ttd.scraper.rss_article.feedparser.parse", return_value=fake_feed), \
+    with patch("ttd.ingestion.rss_article.feedparser.parse", return_value=fake_feed), \
          patch.object(RSSArticleScraper, "parse_article", return_value=mock_normalized):
         scraper = RSSArticleScraper(
             start_urls=["https://fake-feed.com"],

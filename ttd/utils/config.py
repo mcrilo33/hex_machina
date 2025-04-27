@@ -1,10 +1,13 @@
+"""Configuration utilities."""
 import re
 import os
 import yaml
 import logging
+from pydantic import BaseModel
 from pathlib import Path
 from typing import Optional, Dict, Any
 from dotenv import load_dotenv
+
 from ttd.utils.print import safe_pretty_print
 
 DOTENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
@@ -15,6 +18,7 @@ CONFIG_PATH = Path(__file__).parent.parent / "config.yaml"
 
 
 class PathResolver:
+    """Resolves paths and environment variables in a config dict."""
     def __init__(self, root: str):
         self.base_path = Path(root).resolve()
 
@@ -31,18 +35,18 @@ class PathResolver:
             raise ValueError(f"Missing environment variable: {env_key}")
         return env_val
 
-    def resolve_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def resolve_config(self, config: BaseModel) -> BaseModel:
         """
         Resolves all *_path and *_env_var keys in a flat or nested config dict.
         Modifies the config in-place.
         """
-        def _resolve(obj: Dict[str, Any]):
+        def _resolve(obj: Dict[str, Any]) -> Dict[str, Any]:
             new_obj = {}
             for key, value in obj.items():
                 if isinstance(value, dict):
                     new_obj[key] = _resolve(value)
                 elif isinstance(value, str):
-                    if key.endswith("_path") or  key.endswith("_dir"):
+                    if key.endswith("_path") or key.endswith("_dir"):
                         new_obj[key] = str(self.resolve_path(value))
                     elif key.endswith("_env_var"):
                         env_val = str(self.resolve_env(value))
@@ -50,13 +54,15 @@ class PathResolver:
                         new_obj[base_key] = env_val
                     else:
                         new_obj[key] = value
-                else:
+                elif value is not None:
                     new_obj[key] = value
             return new_obj
-        return _resolve(config)
-    
+        new_config = _resolve(config.model_dump())
+        return config.__class__(**new_config)
+
 
 class OpenAIFilter(logging.Filter):
+    """ Filter to truncate long strings in OpenAI logs. """
     def filter(self, record: logging.LogRecord) -> bool:
         if isinstance(record.args, dict) and "json_data" in record.args:
             json_data = record.args["json_data"]
@@ -67,7 +73,8 @@ class OpenAIFilter(logging.Filter):
                         msg["content"] = safe_pretty_print(msg["content"])
         return True
 
-def setup_logging(debug: bool = False):
+
+def setup_logging(debug: bool = False) -> None:
     level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(
         level=level,
@@ -85,8 +92,9 @@ def setup_logging(debug: bool = False):
         openai_logger.addFilter(filter_)
         openai_client_logger.addFilter(filter_)
 
-def load_config(config_path: str = CONFIG_PATH):
-    with open(config_path, "r") as f:
+
+def load_config(config_path: str = CONFIG_PATH) -> Dict[str, Any]:
+    with open(config_path, "r", encoding="utf-8") as f:
         yaml_config = yaml.safe_load(f)
 
     for key, value in yaml_config.items():
@@ -98,11 +106,13 @@ def load_config(config_path: str = CONFIG_PATH):
 
     return yaml_config
 
-def load_path_resolver(config_path: str = CONFIG_PATH):
+
+def load_path_resolver(config_path: str = CONFIG_PATH) -> PathResolver:
     config = load_config(config_path)
     return PathResolver(config["data_dir"])
 
-def update_config(new_data: dict):
+
+def update_config(new_data: dict) -> None:
     config = load_config()
 
     # Deep merge new_data into config
@@ -112,6 +122,5 @@ def update_config(new_data: dict):
         else:
             config[section] = updates
 
-    with open(CONFIG_FILE, "w") as f:
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         yaml.dump(config, f, sort_keys=False)
-

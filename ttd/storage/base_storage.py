@@ -16,7 +16,7 @@ class StorageService(ABC):
         pass
 
     @abstractmethod
-    def update(self, table_name, data, query_field, query_value):
+    def update(self, table_name, data):
         pass
 
     @abstractmethod
@@ -39,12 +39,6 @@ class TinyDBStorageService(StorageService):
 
     def get_table(self, table_name: str):
         return self.db.table(table_name)
-    
-    def get_by_field(self, table_name: str, field_name: str, field_value: str):
-        table = self.get_table(table_name)
-        q = Query()
-        result = table.get(q[field_name] == field_value)
-        return result
 
     def insert(self, table_name, data):
         table = self.get_table(table_name)
@@ -62,7 +56,9 @@ class TinyDBStorageService(StorageService):
         existing_doc = table.get(doc_id=doc_id)
 
         if not existing_doc:
-            raise ValueError(f"No document found in '{table_name}' with doc_id {doc_id}")
+            raise ValueError(
+                f"No document found in '{table_name}' with doc_id {doc_id}"
+            )
 
         # Compute keys to remove
         keys_to_remove = set(existing_doc.keys()) - set(data.keys())
@@ -83,13 +79,20 @@ class TinyDBStorageService(StorageService):
         table = self.get_table(table_name)
         q = Query()
         table.remove(q[query_field] == query_value)
-    
+
     def remove(self, table_name, doc_ids):
         table = self.get_table(table_name)
         return table.remove(doc_ids=doc_ids)
 
     def get_all(self, table_name):
         return self.get_table(table_name).all()
+
+    def get_by_field(self, table_name: str, field_name: str, field_value: str):
+        table = self.get_table(table_name)
+        q = Query()
+        result = table.get(q[field_name] == field_value)
+        return [{**record, "doc_id": str(record.doc_id)} for record in result] \
+            if result else None
 
     def count_records(self, table_name):
         return len(self.get_table(table_name))

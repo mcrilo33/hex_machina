@@ -1,7 +1,10 @@
+"""Printing utilities."""
 import pprint
+from typing import Dict
 
 
-def safe_pretty_print(obj, max_len=50):
+def safe_pretty_print(obj: Dict, max_len: int = 50) -> None:
+    """Print an object with a maximum length for strings."""
     def truncate(v):
         if isinstance(v, str) and len(v) > max_len:
             return v[:max_len] + '...'

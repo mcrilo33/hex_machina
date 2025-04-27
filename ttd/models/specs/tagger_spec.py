@@ -1,11 +1,37 @@
-from ttd.models.base_spec import ModelSpec, PromptSpec
+from pydantic import BaseModel, Field, model_validator
 
-TAGGER_PROMPT = PromptSpec(
+from ttd.models.base_spec import ModelSpec, PromptTemplateSpec
+from ttd.models.configs.open_router_config import OpenRouterConfig
+
+
+class TaggerInput(BaseModel):
+    """Schema for tagger input data."""
+    dense_summarizer__output: str = Field(
+        ..., description="A dense summary of the article"
+    )
+
+
+class TaggerOutput(BaseModel):
+    """Schema for tagger output."""
+    tags: list[str] = Field(
+        ..., description="A list of tags for the article"
+    )
+
+    @model_validator(mode='before')
+    def from_string(item):
+        tags = item["tags"].strip()
+        tags = tags.split(",")
+        tags = [tag.strip() for tag in tags]
+        item["tags"] = tags
+        return item
+
+
+TAGGER_PROMPT = PromptTemplateSpec(
     name="tagger_prompt",
     version="v1.0.0",
     description="Find the most relevant tags for an article.",
-    input_schema="dense_summarizer__output",
-    output_schema="tags",
+    input_schema=TaggerInput,
+    output_schema=TaggerOutput,
     template="""
 You are a professional AI content classifier.
 
@@ -31,9 +57,9 @@ DENSE SUMMARY:
 
 ---
 
-Return a **comma-separated list** of clean, distinct tags.  
-Example: `LLMs,generative AI,AI ethics,medical imaging`  
-Do **not** include duplicates, synonyms, or very similar tags.  
+Return a **comma-separated list** of clean, distinct tags.
+Example: `LLMs,generative AI,AI ethics,medical imaging`
+Do **not** include duplicates, synonyms, or very similar tags.
 Do **not** add quotes, explanations, or formatting — just return the list.
 """
 )
@@ -41,17 +67,15 @@ Do **not** add quotes, explanations, or formatting — just return the list.
 TAGGER_SPEC = ModelSpec(
     name="tagger_spec",
     version="v1",
-    input_schema=TAGGER_PROMPT.input_schema,
-    output_schema=TAGGER_PROMPT.output_schema,
     description="Extracts a dense summary from an article.",
     provider="openai",
-    config={
-        "base_url": "https://openrouter.ai/api/v1",
-        "model_name": "openai/gpt-3.5-turbo",
-        "api_key_env_var": "OPENROUTER_API_KEY",
-        "prompt": TAGGER_PROMPT,
-        "temperature": 0,
-        "max_tokens": 5000,
-        "n": 1
-    }
+    config=OpenRouterConfig(
+        prompt_spec=TAGGER_PROMPT,
+        model_name="openai/gpt-3.5-turbo",
+        api_key_env_var="OPENROUTER_API_KEY",
+        temperature=0.0,
+        max_tokens=5000,
+        n=1
+    )
+
 )

@@ -1,7 +1,8 @@
-import time
+""" Unified storage interface for the full TTD application. """
 from datetime import datetime
-from typing import List
 from pathlib import Path
+from typing import List, Dict, Any
+
 from .base_storage import TinyDBStorageService
 from .artifact_manager import ArtifactManager
 
@@ -20,24 +21,17 @@ class TTDStorage(TinyDBStorageService):
         artifact_dir = Path(db_path).parent / "artifacts"
         self.artifacts = ArtifactManager(base_path=str(artifact_dir))
 
-    def _serialize_datetimes(self, obj: dict) -> dict:
-        def serialize(value):
-            if isinstance(value, datetime):
-                return value.isoformat()
-            elif isinstance(value, dict):
-                return {k: serialize(v) for k, v in value.items()}
-            elif isinstance(value, list):
-                return [serialize(v) for v in value]
-            return value
-
-        return serialize(obj)
-
-    def save(self, table_name: str, objects):
-        if not isinstance(objects, list):
-            objects = [objects]
+    def save(self, table_name: str, data) -> List[str]:
+        """
+        Save data to the specified table.
+        Handles automatic offloading of large fields.
+        Returns list of doc_ids.
+        """
+        if not isinstance(data, list):
+            data = [data]
 
         result = []
-        for obj in objects:
+        for obj in data:
             obj["table_name"] = table_name
             obj["created_at"] = datetime.utcnow().isoformat()
 
@@ -57,38 +51,70 @@ class TTDStorage(TinyDBStorageService):
 
         return [str(id) for id in self.insert(table_name, result)]
 
-    def update(self, table_name: str, objects):
-        if not isinstance(objects, list):
-            objects = [objects]
+    def update(self, table_name: str, data: List[Dict[str, Any]]) -> List[str]:
+        """
+        Update existing records in the specified table.
+        Handles automatic offloading of large fields.
+        Add doc_id to results.
+        Returns list of doc_ids.
+        """
+        if not isinstance(data, list):
+            data = [data]
 
-        for obj in objects:
+        ids = []
+        for obj in data:
             obj["last_updated"] = datetime.utcnow().isoformat()
             obj = self.artifacts.save_large_fields(
                 obj,
                 table_name=table_name,
                 timestamp=obj["last_updated"]
             )
-            self.update_single(table_name, obj)
+            ids.append(self.update_single(table_name, obj))
 
-    def get_all(self, table_name: str):
-        table = super().get_table(table_name)
-        return [
-            self.artifacts.lazy_load_fields({**record, "doc_id": str(record.doc_id)})
-            for record in table
-        ]
+        return [str(id) for id in ids]
 
-    def get_by_field(self, table_name: str, field_name: str, field_value: str):
+    def get_all(self, table_name: str) -> List[Dict[str, Any]]:
+        """
+        Retrieve all records from the specified table.
+        Add doc_id to results.
+        """
         table = super().get_table(table_name)
-        from tinydb import Query
-        q = Query()
-        for record in table.search(q[field_name] == field_value):
-            return self.artifacts.lazy_load_fields({**record, "doc_id": str(record.doc_id)})
-        return None
-    
-    def search(self, table_name: str, query):
+        return [{**record, "doc_id": str(record.doc_id)} for record in table]
+
+    def search(self, table_name: str, query) -> List[Dict[str, Any]]:
+        """
+        Search for records in the specified table using a query.
+        Add doc_id to results.
+        """
         table = super().get_table(table_name)
         results = table.search(query)
+        return [{**record, "doc_id": str(record.doc_id)} for record in results]
+
+    def lazy_load(self, data) -> List[Dict[str, Any]]:
+        """ Turn data into lazy load objects. """
+        if not isinstance(data, list):
+            data = [data]
+
         return [
-            self.artifacts.lazy_load_fields({**record, "doc_id": str(record.doc_id)})
-            for record in results
+            self.artifacts.lazy_load_fields(obj)
+            for obj in data
         ]
+
+    def save_or_update(self, table_name: str, data) -> List[str]:
+        """
+        Save or update data in the specified table.
+        If data contains a doc_id, update the record.
+        Otherwise, save a new record.
+        Return a list of doc_ids.
+        """
+        if not isinstance(data, list):
+            data = [data]
+        ids = []
+        for obj in data:
+            if "doc_id" in obj:
+                self.update(table_name, obj)
+                ids.append(obj["doc_id"])
+            else:
+                obj_id = self.save(table_name, obj)[0]
+                ids.append(obj_id)
+        return ids
