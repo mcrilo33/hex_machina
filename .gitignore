@@ -183,3 +183,6 @@ cython_debug/
 # Local test
 test.py
 ttd/config.yaml
+
+# Metaflow
+.metaflow/
