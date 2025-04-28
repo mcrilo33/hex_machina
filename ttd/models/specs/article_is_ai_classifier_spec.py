@@ -55,7 +55,7 @@ ARTICLE:
 \"\"\"{article__text_content}\"\"\"
 
 ---
-Return ONLY `true` or `false` (no explanation, no punctuation).
+Return ONLY true or false (no explanation, no punctuation).
 """
 )
 

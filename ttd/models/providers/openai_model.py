@@ -47,7 +47,7 @@ class OpenAIModel():
         if hasattr(response, 'error'):
             provider = response.error.get(
                 "metadata", {}
-            ).get('provider_name', 'Unknown provider').upper()
+            ).get('provider_name', 'Unknown provider')
             raise ValueError(
                 f"PROVIDER [[{provider}]]\n== Error {response.error.get('code')}: " +
                 f"{response.error.get('message')}"

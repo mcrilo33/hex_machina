@@ -16,12 +16,13 @@ def execute(flow):
     logger.info("✅ Database first connection established.")
     
     # Clean up tables for a fresh run
-    # storage.db.drop_table("tags")
-    # storage.db.drop_table("tag_clusters")
+    storage.db.drop_table("tags")
+    storage.db.drop_table("tag_clusters")
+    storage.db.drop_table(flow.replicate_table)
     logger.info("✅ Database cleaned.")
     
     # Initialize metrics dictionary
-    flow.metrics = {
-        'processing_times': {},
-        'step_start_times': {}
-    }
+    flow.metrics = {}
+    flow.errors = {}
+    flow.prediction_times = {}
+    flow.token_usage = {}

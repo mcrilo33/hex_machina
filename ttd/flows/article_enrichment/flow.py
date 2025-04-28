@@ -19,6 +19,8 @@ from ttd.flows.article_enrichment.steps.update_clusters \
     import execute as update_clusters_step
 from ttd.flows.article_enrichment.steps.replicate_articles \
     import execute as replicate_articles_step
+from ttd.flows.article_enrichment.steps.prepare_report \
+    import execute as prepare_report_step
 
 
 class ArticleEnrichmentFlow(FlowSpec):
@@ -101,6 +103,12 @@ class ArticleEnrichmentFlow(FlowSpec):
     def replicate_articles(self):
         """Replicate articles with enriched data."""
         replicate_articles_step(self)
+        self.next(self.prepare_report)
+
+    @step
+    def prepare_report(self):
+        """Prepare a report with metrics and statistics."""
+        prepare_report_step(self)
         self.next(self.end)
 
     @step

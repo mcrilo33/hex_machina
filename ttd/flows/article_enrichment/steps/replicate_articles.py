@@ -95,7 +95,10 @@ def execute(flow):
             )
             record["tag_similarity_eval"] = avg_sim
         # Save replicated article
-        storage.save(flow.replicate_table, record)
+        logger.info(f"✅ Replicated {idx+1}/{len(flow.articles)} articles.")
+        # TODO Fix ArtifactManager_lazy_load SHOUlD OFFLOAD LARGE FIELDS
+        del record["text_content"]
+        storage.save(flow.replicate_table, storage.lazy_load(record))
         replicated_articles.append(record)
         logger.info(f"✅ Replicated {idx+1}/{len(flow.articles)} articles.")
 
