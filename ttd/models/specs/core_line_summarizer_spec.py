@@ -6,14 +6,14 @@ from ttd.models.configs.open_router_config import OpenRouterConfig
 
 class CoreLineSummarizerInput(BaseModel):
     """Schema for core line summarizer input data."""
-    dense_summarizer__output: str = Field(
+    output: str = Field(
         ..., description="A dense summary of the article"
     )
 
 
 class CoreLineSummarizerOutput(BaseModel):
     """Schema for core line summarizer output."""
-    core_line_summary: str = Field(
+    output: str = Field(
         ..., description="A single-sentence summary of the dense summary"
     )
 
@@ -39,7 +39,7 @@ You will be given:
 ---
 
 DENSE SUMMARY:
-\"\"\"{dense_summarizer__output}\"\"\"
+\"\"\"{output}\"\"\"
 
 ---
 
@@ -55,7 +55,7 @@ CORE_LINE_SUMMARIZER_SPEC = ModelSpec(
     provider="openai",
     config=OpenRouterConfig(
         prompt_spec=CORE_LINE_SUMMARIZER_PROMPT,
-        model_name="openai/gpt-3.5-turbo",
+        model_name="meta-llama/llama-4-maverick:free",
         api_key_env_var="OPENROUTER_API_KEY",
         temperature=0.0,
         max_tokens=5000,

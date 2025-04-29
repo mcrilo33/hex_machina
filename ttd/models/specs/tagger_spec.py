@@ -6,23 +6,23 @@ from ttd.models.configs.open_router_config import OpenRouterConfig
 
 class TaggerInput(BaseModel):
     """Schema for tagger input data."""
-    dense_summarizer__output: str = Field(
+    output: str = Field(
         ..., description="A dense summary of the article"
     )
 
 
 class TaggerOutput(BaseModel):
     """Schema for tagger output."""
-    tags: list[str] = Field(
+    output: list[str] = Field(
         ..., description="A list of tags for the article"
     )
 
     @model_validator(mode='before')
-    def from_string(item):
-        tags = item["tags"].strip()
+    def validate_output(item):
+        tags = item["output"].strip()
         tags = tags.split(",")
         tags = [tag.strip() for tag in tags]
-        item["tags"] = tags
+        item["output"] = tags
         return item
 
 
@@ -53,7 +53,7 @@ You will be provided with:
 ---
 
 DENSE SUMMARY:
-\"\"\"{dense_summarizer__output}\"\"\"
+\"\"\"{output}\"\"\"
 
 ---
 
@@ -71,7 +71,7 @@ TAGGER_SPEC = ModelSpec(
     provider="openai",
     config=OpenRouterConfig(
         prompt_spec=TAGGER_PROMPT,
-        model_name="openai/gpt-3.5-turbo",
+        model_name="meta-llama/llama-4-maverick:free",
         api_key_env_var="OPENROUTER_API_KEY",
         temperature=0.0,
         max_tokens=5000,

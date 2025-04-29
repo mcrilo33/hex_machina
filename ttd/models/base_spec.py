@@ -9,6 +9,22 @@ InputType = TypeVar('InputType', bound=BaseModel)
 OutputType = TypeVar('OutputType', bound=BaseModel)
 ModelConfig = TypeVar('ModelConfig', bound=BaseModel)
 
+def extract_nested_fields_from_schema(schema: type(BaseModel), inputs: dict) -> dict:
+    """Extract fields matching model_class from possibly nested inputs."""
+    result = {}
+    for field in schema.__fields__:
+        keys = field.split("__")  # Split field into nested keys
+        value = inputs
+        try:
+            for key in keys:
+                value = value[key]
+            result[field] = value
+        except (KeyError, TypeError):
+            raise ValueError(
+                f"Field '{field}' not found in input data. "
+                f"Expected structure: {model_class.__fields__}"
+            )
+    return result
 
 class BaseSpec(BaseModel):
     """Base class for all specs with common fields."""
@@ -26,13 +42,16 @@ class BaseSpec(BaseModel):
         "arbitrary_types_allowed": True,
     }
 
-    def validate_input(self, data: Any) -> InputType:
-        """Validate input data against the input schema."""
-        return self.input_schema.model_validate(data)
+    def extract_and_validate_input(self, data: Any) -> InputType:
+        """Extract and validate input data against the input schema."""
+        extracted = extract_nested_fields_from_schema(self.input_schema, data)
+        self.input_schema.model_validate(extracted)
+        return extracted
 
     def validate_output(self, data: Any) -> OutputType:
         """Validate output data against the output schema."""
-        return self.output_schema.model_validate(data)
+        self.output_schema.model_validate(data)
+        return data
 
 
 class PromptTemplateSpec(BaseSpec):

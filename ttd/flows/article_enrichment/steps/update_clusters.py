@@ -93,57 +93,42 @@ def execute(flow):
     """Cluster similar tags based on embeddings."""
     logger.info("Clustering tags...")
     step_name = "cluster_tags"
-
-    # Init metrics
-    flow.metrics.setdefault("step_start_times", {})[step_name] = time.time()
-    flow.errors.setdefault(step_name, [])
-    flow.prediction_times.setdefault(step_name, [])
-
+    model_spec_name = "tag_embedding_spec"
+    start_time = time.time()
+    flow.metrics.setdefault("step_start_times", {})[step_name] = start_time
+    flow.metrics.setdefault("models_spec_names", {})[step_name] = model_spec_name
+    flow.metrics.setdefault("models_io", {})[model_spec_name] = {
+        "inputs": [],
+        "outputs": [],
+        "errors": []
+    }
     storage = TTDStorage(flow.config.get("db_path"))
-    flow.tag_embedding_spec_name = "tag_embedding_spec"
-    tag_embedding_spec = load_model_spec(flow.tag_embedding_spec_name)
+    tag_embedding_spec = load_model_spec(model_spec_name)
 
-    flow.clusters = []
-
-    for idx, tag in enumerate(flow.tags):
+    clusters = []
+    data = flow.tags
+    for idx, tag in enumerate(data):
+        pred_start_time = time.time()
+        logger.info(f"✅ Update {idx+1}/{len(data)} ")
+        flow.metrics["models_io"][model_spec_name]["inputs"].append(tag)
         try:
-            start_time = time.time()
-
-            logger.info(f"Processing tag {idx+1}/{len(flow.tags)}: {tag['name']}")
-            result = _transform_cluster(tag, storage, tag_embedding_spec._loaded_model)
-
-            duration = time.time() - start_time
-            flow.prediction_times[step_name].append(duration)
-
-            if result and "cluster" in result:
-                flow.clusters.append(result["cluster"])
-
-            logger.info(f"✅ Updated/created cluster for tag {tag['name']} "
-                        f"(took {duration:.4f}s)")
-
+            pred_success = True
+            output = _transform_cluster(tag, storage, tag_embedding_spec._loaded_model)
         except Exception as e:
-            logger.error(f"❌ Error clustering tag {idx}: {str(e)}")
-            flow.errors[step_name].append({
+            logger.error(f"❌ Error on tag {idx}: {str(e)}")
+            flow.metrics["models_io"][model_spec_name]["errors"].append({
                 "index": idx,
                 "error_message": str(e),
-                "tag_name": tag.get("name", None)
+                "tag_id": tag.get("doc_id", None)
             })
-            flow.prediction_times[step_name].append(0.0)
+        if pred_success:
+            pred_duration = time.time() - pred_start_time
+            output["duration"] = pred_duration
 
-    # Finalize metrics
-    total_time = time.time() - flow.metrics["step_start_times"][step_name]
-    flow.metrics.setdefault("processing_times", {})[step_name] = total_time
-    flow.metrics.setdefault("avg_prediction_times", {})[step_name] = (
-        sum(flow.prediction_times[step_name]) / len(flow.prediction_times[step_name])
-        if flow.prediction_times[step_name] else 0.0
-    )
+        if output and "cluster" in output:
+            clusters.append(output["cluster"])
 
-    count_clusters = len(flow.clusters)
-    avg_time = flow.metrics["avg_prediction_times"][step_name]
-    error_count = len(flow.errors[step_name])
-
-    logger.info(
-        f"✅ Step {step_name} completed in {total_time:.2f}s, "
-        f"{count_clusters} clusters created "
-        f"(avg clustering time: {avg_time:.4f}s, errors: {error_count})."
-    )
+    flow.clusters = clusters
+    total_time = time.time() - start_time
+    flow.metrics.setdefault("step_duration", {})[step_name] = total_time
+    logger.info(f"✅ Step {step_name} done in {total_time:.2f}s")

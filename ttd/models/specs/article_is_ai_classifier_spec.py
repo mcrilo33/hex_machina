@@ -6,28 +6,31 @@ from ttd.models.configs.open_router_config import OpenRouterConfig
 
 class IsAIInput(BaseModel):
     """Schema for is_ai classifier input."""
-    article__title: str = Field(..., description="The title of the article")
-    article__text_content: str = Field(
+    title: str = Field(..., description="The title of the article")
+    text_content: str = Field(
         ..., description="The main content of the article"
     )
 
 
 class IsAIOutput(BaseModel):
     """Schema for is_ai classifier output."""
-    is_ai: bool = Field(..., description="Whether the article is primarily about AI")
+    output: bool = Field(..., description="Whether the article is primarily about AI")
 
     @model_validator(mode='before')
-    def from_string(item):
-        value = item["is_ai"].strip().lower()
+    def validate_output(item):
+        value = item["output"].strip().lower()
         if value == "true":
-            item["is_ai"] = True
+            item["output"] = True
         elif value == "false":
-            item["is_ai"] = False
+            item["output"] = False
         else: 
             raise ValueError(
                 f"Cannot convert '{value}' to boolean. Expected 'true' or 'false'."
             )
         return item
+    
+    class Config:
+        extra = 'allow'
 
 
 ARTICLE_IS_AI_PROMPT = PromptTemplateSpec(
@@ -50,9 +53,9 @@ Do **not** classify it as AI-related if:
 
 ---
 TITLE:
-\"\"\"{article__title}\"\"\"
+\"\"\"{title}\"\"\"
 ARTICLE:
-\"\"\"{article__text_content}\"\"\"
+\"\"\"{text_content}\"\"\"
 
 ---
 Return ONLY true or false (no explanation, no punctuation).
@@ -66,7 +69,7 @@ ARTICLE_IS_AI_CLASSIFIER_SPEC = ModelSpec(
     provider="openai",
     config=OpenRouterConfig(
         prompt_spec=ARTICLE_IS_AI_PROMPT,
-        model_name="openai/gpt-3.5-turbo",
+        model_name="meta-llama/llama-4-maverick:free",
         api_key_env_var="OPENROUTER_API_KEY",
         temperature=0.0,
         max_tokens=5000,

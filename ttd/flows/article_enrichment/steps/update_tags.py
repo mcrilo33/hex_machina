@@ -3,6 +3,7 @@ import logging
 import time
 from tinydb import Query
 from ttd.storage.ttd_storage import TTDStorage
+from ttd.utils.print import safe_pretty_print
 
 logger = logging.getLogger(__name__)
 
@@ -11,67 +12,57 @@ def execute(flow):
     """Save or update tags in the database."""
     logger.info("Saving merged tags to database...")
     step_name = "save_tags"
-
-    # Initialize metrics tracking
-    flow.metrics.setdefault("step_start_times", {})[step_name] = time.time()
-    flow.errors.setdefault(step_name, [])
-    flow.prediction_times.setdefault(step_name, [])
+    model_spec_name = "update_tags_db"
+    start_time = time.time()
+    flow.metrics.setdefault("step_start_times", {})[step_name] = start_time
+    flow.metrics.setdefault("models_spec_names", {})[step_name] = model_spec_name
+    flow.metrics.setdefault("models_io", {})[model_spec_name] = {
+        "inputs": [],
+        "outputs": [],
+        "errors": []
+    }
 
     storage = TTDStorage(flow.config.get("db_path"))
-    flow.tags = []
+    tags = []
     TagWord = Query()
-
-    for idx, pred in enumerate(flow.merged_tags.values()):
+    data = flow.merged_tags.values()
+    for idx, pred in enumerate(data):
         try:
-            start_time = time.time()
-
+            pred_start_time = time.time()
             tag_records = storage.search("tags", TagWord.name == pred["output"])
-            
+            logger.info(f"✅ Update {idx+1}/{len(data)} ")
+            logger.info(f"✅ Inputs:")
+            logger.info(safe_pretty_print(pred))
             if tag_records:
                 tag = tag_records[0]
                 tag["history"] += pred["history"]
-                logger.debug(f"Updating existing tag: {tag['name']}")
+                logger.debug(f"✅ Updating existing tag: {tag['name']}")
             else:
                 tag = {
                     "table_name": "tags",
                     "name": pred["output"],
                     "history": pred["history"]
                 }
-                logger.debug(f"Creating new tag: {tag['name']}")
+                logger.debug(f"✅ Creating new tag: {tag['name']}")
 
             ids = storage.save_or_update("tags", tag)
             tag["doc_id"] = ids[0]
-            flow.tags.append(tag)
-
-            duration = time.time() - start_time
-            flow.prediction_times[step_name].append(duration)
-
-            logger.info(f"✅ Saved tag {idx+1}/{len(flow.merged_tags)}: {tag['name']} "
-                        f"(save time: {duration:.4f}s)")
-
-        except Exception as e:
-            logger.error(f"❌ Error saving tag at index {idx}: {str(e)}")
-            flow.errors[step_name].append({
-                "index": idx,
-                "error_message": str(e),
-                "tag_name": pred.get("output", None)
+            tags.append(tag)
+            pred_duration = time.time() - pred_start_time
+            flow.metrics["models_io"][model_spec_name]["outputs"].append({
+                "duration": pred_duration
             })
-            flow.prediction_times[step_name].append(0.0)
+        except Exception as e:
+            logger.error(f"❌ Error in {step_name} at article {idx}: {str(e)}")
+            flow.metrics["models_io"][model_spec_name]["errors"].append(
+                flow.errors[step_name].append({
+                    "index": idx,
+                    "error_message": str(e),
+                    "article_id": flow.articles[idx].get("doc_id", None)
+                })
+            )
 
-    # Finalize metrics
-    total_time = time.time() - flow.metrics["step_start_times"][step_name]
-    flow.metrics.setdefault("processing_times", {})[step_name] = total_time
-    flow.metrics.setdefault("avg_prediction_times", {})[step_name] = (
-        sum(flow.prediction_times[step_name]) / len(flow.prediction_times[step_name])
-        if flow.prediction_times[step_name] else 0.0
-    )
-
-    count_tags = len(flow.tags)
-    avg_time = flow.metrics["avg_prediction_times"][step_name]
-    error_count = len(flow.errors[step_name])
-
-    logger.info(
-        f"✅ Step {step_name} completed in {total_time:.2f}s, "
-        f"{count_tags} tags saved or updated "
-        f"(avg save time: {avg_time:.4f}s, errors: {error_count})."
-    )
+    flow.tags = tags
+    total_time = time.time() - start_time
+    flow.metrics.setdefault("step_duration", {})[step_name] = total_time
+    logger.info(f"✅ Step {step_name} done in {total_time:.2f}s")

@@ -21,6 +21,8 @@ from ttd.flows.article_enrichment.steps.replicate_articles \
     import execute as replicate_articles_step
 from ttd.flows.article_enrichment.steps.prepare_report \
     import execute as prepare_report_step
+from ttd.flows.article_enrichment.steps.score_articles \
+    import execute as score_articles_step
 
 
 class ArticleEnrichmentFlow(FlowSpec):
@@ -32,6 +34,10 @@ class ArticleEnrichmentFlow(FlowSpec):
     """
 
     # Define parameters that can be passed to the flow
+    articles_table = Parameter('articles_table',
+                               help='Table to load articles from',
+                               default='articles')
+
     articles_limit = Parameter('articles_limit',
                                help='Maximum number of articles to process',
                                default=2)
@@ -40,9 +46,13 @@ class ArticleEnrichmentFlow(FlowSpec):
                                help='Process articles published after this date',
                                default='Thu, 03 Apr 2025 18:00:00 +0000')
 
-    replicate_table = Parameter('replicate_table',
-                                help='Replicate articles to this table',
+    replicates_table = Parameter('replicates_table',
+                                help='Replicates articles to this table',
                                 default='replicated_articles')
+
+    keep_replicates = Parameter('keep_replicates',
+                                help='Keep replicated articles and skip already replicated articles',
+                                default=True)
 
     @step
     def start(self):
@@ -55,7 +65,12 @@ class ArticleEnrichmentFlow(FlowSpec):
     def load_articles(self):
         """Load articles published after a date threshold."""
         load_articles_step(self)
-        self.next(self.is_ai_articles)
+        if len(flow.articles) == 0:
+            self.log.warning("No articles to process.")
+            self.log.warning("Exiting flow.")
+            self.next(self.end)
+        else:
+            self.next(self.is_ai_articles)
 
     @step
     def is_ai_articles(self):
@@ -103,6 +118,12 @@ class ArticleEnrichmentFlow(FlowSpec):
     def replicate_articles(self):
         """Replicate articles with enriched data."""
         replicate_articles_step(self)
+        self.next(self.score_articles)
+
+    @step
+    def score_articles(self):
+        """Score articles based on clusters frequency and order."""
+        score_articles_step(self)
         self.next(self.prepare_report)
 
     @step

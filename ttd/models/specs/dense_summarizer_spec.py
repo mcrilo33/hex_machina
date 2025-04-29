@@ -6,15 +6,15 @@ from ttd.models.configs.open_router_config import OpenRouterConfig
 
 class DenseSummarizerInput(BaseModel):
     """Schema for dense summarizer input."""
-    article__title: str = Field(..., description="The title of the article")
-    article__text_content: str = Field(
+    title: str = Field(..., description="The title of the article")
+    text_content: str = Field(
         ..., description="The main content of the article"
     )
 
 
 class DenseSummarizerOutput(BaseModel):
     """Schema for dense summarizer output."""
-    dense_summary: str = Field(..., description="Dense summary of the article")
+    output: str = Field(..., description="Dense summary of the article")
 
 
 DENSE_SUMMARIZER_PROMPT = PromptTemplateSpec(
@@ -42,9 +42,9 @@ You will be given:
 ---
 
 TITLE:
-\"\"\"{article__title}\"\"\"
+\"\"\"{title}\"\"\"
 ARTICLE:
-\"\"\"{article__text_content}\"\"\"
+\"\"\"{text_content}\"\"\"
 
 ---
 
@@ -60,7 +60,7 @@ DENSE_SUMMARIZER_SPEC = ModelSpec(
     provider="openai",
     config=OpenRouterConfig(
         prompt_spec=DENSE_SUMMARIZER_PROMPT,
-        model_name="openai/gpt-3.5-turbo",
+        model_name="meta-llama/llama-4-maverick:free",
         api_key_env_var="OPENROUTER_API_KEY",
         temperature=0.0,
         max_tokens=5000,

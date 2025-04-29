@@ -2,6 +2,8 @@
 import logging
 import time
 
+from ttd.utils.print import safe_pretty_print
+
 logger = logging.getLogger(__name__)
 
 
@@ -9,67 +11,55 @@ def execute(flow):
     """Merge extracted tags across articles."""
     logger.info("Merging extracted tags...")
     step_name = "merge_same_tags"
-
-    # Initialize timing and error tracking
-    flow.metrics.setdefault("step_start_times", {})[step_name] = time.time()
-    flow.errors.setdefault(step_name, [])
-    flow.prediction_times.setdefault(step_name, [])
+    model_spec_name = "merge_same_tags_db"
+    start_time = time.time()
+    flow.metrics.setdefault("step_start_times", {})[step_name] = start_time
+    flow.metrics.setdefault("models_spec_names", {})[step_name] = model_spec_name
+    flow.metrics.setdefault("models_io", {})[model_spec_name] = {
+        "inputs": [],
+        "outputs": [],
+        "errors": []
+    }
 
     merged_tags = {}
 
-    for idx, (article, tags_pred) in enumerate(zip(flow.articles, flow.tags_preds)):
+    data = flow.metrics["models_io"]["tagger_spec"]["outputs"]
+    count_tags = 0
+    for idx, tags_pred in enumerate(data):
+        tags_pred = tags_pred["output"]
         try:
-            start_time = time.time()
-
-            if tags_pred is None:
-                flow.prediction_times[step_name].append(0.0)
-                continue
-
-            for jdx, tag in enumerate(tags_pred["tags"]):
+            pred_start_time = time.time()
+            flow.metrics["models_io"][model_spec_name]["inputs"].append(tags_pred)
+            logger.info(f"✅ Merge {idx+1}/{len(data)} ")
+            logger.info(f"✅ Inputs:")
+            logger.info(safe_pretty_print(tags_pred))
+            for jdx, tag in enumerate(tags_pred):
+                count_tags += 1
+                logger.info(f"✅ {tag} {idx+1}/{len(tags_pred)} - {count_tags} Items")
                 if tag not in merged_tags:
                     merged_tags[tag] = {
                         "output": tag,
-                        "history": [article["published_date"]],
+                        "history": [flow.articles[idx]["published_date"]],
                     }
-                    logger.info(
-                        f"✅ Merged tag {tag} from article {idx+1}/{len(flow.articles)}."
-                    )
                 else:
-                    merged_tags[tag]["history"].append(article["published_date"])
-                    logger.info(
-                        f"⚡ Updated tag {tag} history from article {idx+1}/{len(flow.articles)}."
-                    )
-
-            merge_time = time.time() - start_time
-            flow.prediction_times[step_name].append(merge_time)
-
+                    merged_tags[tag]["history"].append(flow.articles[idx]["published_date"])
+                logger.info(f"✅ Merged tags {len(merged_tags)} - {count_tags} Items")
+                logger.info(safe_pretty_print(merged_tags))
+            pred_duration = time.time() - pred_start_time
+            flow.metrics["models_io"][model_spec_name]["outputs"].append({
+                "duration": pred_duration
+            })
         except Exception as e:
             logger.error(f"❌ Error in {step_name} at article {idx}: {str(e)}")
-            flow.errors[step_name].append({
-                "index": idx,
-                "error_message": str(e),
-                "article_id": article.get("doc_id", None)
-            })
-            flow.prediction_times[step_name].append(0.0)
+            flow.metrics["models_io"][model_spec_name]["errors"].append(
+                flow.errors[step_name].append({
+                    "index": idx,
+                    "error_message": str(e),
+                    "article_id": flow.articles[idx].get("doc_id", None)
+                })
+            )
 
-    # Save merged tags to flow
     flow.merged_tags = merged_tags
-
-    # Finalize timing
-    total_time = time.time() - flow.metrics["step_start_times"][step_name]
-    flow.metrics.setdefault("processing_times", {})[step_name] = total_time
-    flow.metrics.setdefault("avg_prediction_times", {})[step_name] = (
-        sum(flow.prediction_times[step_name]) / len(flow.prediction_times[step_name])
-        if flow.prediction_times[step_name] else 0.0
-    )
-
-    count_tags = len(flow.merged_tags)
-    avg_time = flow.metrics["avg_prediction_times"][step_name]
-    error_count = len(flow.errors[step_name])
-
-    logger.info(
-        f"✅ Step {step_name} completed in {total_time:.2f}s, "
-        f"{count_tags} unique tags merged, "
-        f"avg merge time: {avg_time:.4f}s, "
-        f"errors: {error_count}."
-    )
+    total_time = time.time() - start_time
+    flow.metrics.setdefault("step_duration", {})[step_name] = total_time
+    logger.info(f"✅ Step {step_name} done in {total_time:.2f}s")
