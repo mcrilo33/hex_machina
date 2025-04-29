@@ -22,6 +22,7 @@ class ArtifactManager:
         dt = datetime.fromisoformat(timestamp)
         artifact_dir = self.base_path / table_name / f"{dt.year:04}" / \
             f"{dt.month:02}" / f"{table_name[:-1]}_{doc_id}"
+        artifact_dir = Path(artifact_dir).resolve()
         artifact_dir.mkdir(parents=True, exist_ok=True)
         return artifact_dir / f"{field_name}.txt"
 
@@ -53,8 +54,9 @@ class ArtifactManager:
                 # New format: field_artifact = { path, ... }
                 artifact_key = f"{item}_artifact"
                 if artifact_key in self:
-                    info = self[artifact_key]
+                    info = self.get(artifact_key)
                     path = info.get("path")
+                    path = Path(path).resolve()
                     if path and Path(path).exists():
                         with open(path, encoding=info.get("encoding", "utf-8")) as f:
                             value = f.read() if info.get("format") == "text" \
