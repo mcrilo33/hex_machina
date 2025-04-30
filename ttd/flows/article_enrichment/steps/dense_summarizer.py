@@ -28,6 +28,9 @@ def execute(flow):
             flow.metrics["models_io"][model_spec_name]["inputs"] += inputs
             flow.metrics["models_io"][model_spec_name]["outputs"] += outputs
             flow.metrics["models_io"][model_spec_name]["errors"] += errors
+        else:
+            flow.metrics["models_io"][model_spec_name]["inputs"].append(None)
+            flow.metrics["models_io"][model_spec_name]["outputs"].append(None)
 
     total_time = time.time() - start_time
     flow.metrics.setdefault("step_duration", {})[step_name] = total_time

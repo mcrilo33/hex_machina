@@ -51,7 +51,10 @@ class ArticleEnrichmentFlow(FlowSpec):
                                 default='replicated_articles')
 
     keep_replicates = Parameter('keep_replicates',
-                                help='Keep replicated articles and skip already replicated articles',
+                                help=('Keep replicated articles and skip '
+                                      'already replicated articles '
+                                      'else clean tables '
+                                      '(tags, tag_clusters, replicated_articles)'),
                                 default=True)
 
     @step

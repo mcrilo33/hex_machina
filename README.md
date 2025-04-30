@@ -7,62 +7,22 @@
 ## 📌 Overview
 
 Keeping up with the **fast-moving AI landscape** is **time-consuming**. Traditional manual curation can’t scale.
+**This is a funny problem to solve.**
 
-💡 **TTD automates AI news curation**, leveraging **state-of-the-art AI models** to:
-
-✅ Fetch **AI-related articles** from trusted sources.
-
-✅ Tag, summarize, and classify posts for relevance.
-
-✅ Format the best insights into **a structured newsletter**.
-
-🔎 **The goal? Effortless, high-quality AI updates in one place.**
-
-## 📜 Background
-
-Most AI newsletters today are either:
-
-❌ **Too limited** → They miss key developments.
-
-❌ **Too time-consuming**.
-
-🧠 **TTD solves this** using **AI-driven automation**, ensuring:
-
-🔹 **Comprehensive coverage** of AI research.
-
-🔹 **Timely and relevant content** filtering.
-
-🔹 **Automatic newsletter generation** without human intervention.
 
 ## ✅ Features & Scope
 
 ### ✔ In-Scope
 
-✔ **Scraper** → Fetches articles from AI-related websites.
+✔ **Ingestion** → Ingests articles from AI-related websites. ✅
 
-✔ **Enricher** → Adds tags, reading time, complexity, summaries.
+✔ **Article Enrichment Flow** → Adds tags, reading time, complexity, summaries. ✅
 
-✔ **Classifier** → Selects most relevant items and filters out noise.
+✔ **Classifier** → Selects most relevant items. (Not yet implemented)
 
-✔ **Newsletter Generator** → Compiles and formats daily updates.
+✔ **Newsletter Generator** → Compiles and formats daily updates. (Not yet implemented)
 
-✔ **Orchestration Script** → Runs the full pipeline automatically.
-
-### ❌ Out of Scope (MVP)
-
-🚫 **Social media sources** (Twitter, LinkedIn, etc.).
-
-🚫 **Personalized content filtering** (future enhancement).
-
-🚫 **Paid content sources**. *But no worries, there are a lot of very high quality publicly available content*.
-
-### 📌 Key Components:
-
-- Scraper 🕵️‍♂️ → Fetches AI articles hourly from public sources.
-- Enricher 🤖 → Adds tags, reading time, and multi-level summaries.
-- Classifier 🏆 → Scores relevance & filters bad items.
-- Newsletter Generator 📝 → Formats top AI stories into a digest.
-- Orchestrator 🔄 → Runs the entire pipeline automatically.
+✔ **Orchestration Script** → Runs the full pipeline automatically. (Not yet implemented)
 
 ## 🏗 Technology Stack
 
@@ -71,9 +31,9 @@ Most AI newsletters today are either:
 | Scraping            | Scrapy                       |
 | Database            | TinyDB                       |
 | Tagging & NLP       | Hugging Face / OpenAI API    |
+| Workflow            | Metaflow                     |
 | Summarization       | Transformer-based models     |
 | Hosting             | Beehiv                       |
-| Automation          | Cron Jobs / Python Scripts   |
 
 ## 📚 Documentation
 

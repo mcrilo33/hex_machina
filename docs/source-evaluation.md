@@ -21,5 +21,5 @@ Tracking potential sources for scraping AI news & blogs.
 
 ## 🗂️ Related
 
-- `notebooks/source_research.ipynb`
-- `research/scrapers/`
+- `notebooks/source_article_analysis.ipynb` (where to find good articles)
+- `research/scrapers/` (scrapers used to analyze newsletters)

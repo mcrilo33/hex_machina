@@ -103,6 +103,9 @@ def execute(flow) -> None:
     # Domain-level stats
     _gather_domain_stats(df, flow)
 
+    # Tag statistics
+    _gather_tag_stats(df, flow)
+
     logger.info(f"✅ Report metrics calculated for {len(df)} articles.")
 
     # Save the processed DataFrame for further analysis if needed
@@ -121,11 +124,6 @@ def _gather_top_bottom(df: pd.DataFrame, flow) -> None:
     if "bert_score_summary_vs_dense_eval" in df.columns and df["bert_score_summary_vs_dense_eval"].notna().any():
         flow.report["bert_best"] = df.nlargest(5, "bert_score_summary_vs_dense_eval")[["title", "bert_score_summary_vs_dense_eval"]].to_dict(orient="records")
         flow.report["bert_worst"] = df.nsmallest(5, "bert_score_summary_vs_dense_eval")[["title", "bert_score_summary_vs_dense_eval"]].to_dict(orient="records")
-        print("YOOOOOOOOO")
-        print(flow.report["bert_best"])
-        print("YOOOOOOOOO")
-        print(flow.report["bert_worst"])
-        print("YOOOOOOOOO")
 
     if "tag_similarity_eval" in df.columns and df["tag_similarity_eval"].notna().any():
         flow.report["tag_similarity_best"] = df.nlargest(5, "tag_similarity_eval")[["title", "tag_similarity_eval"]].to_dict(orient="records")
@@ -172,6 +170,8 @@ def _gather_domain_stats(df: pd.DataFrame, flow) -> None:
                 agg_dict["is_ai_pred_added_bool"] = "sum"
             else:
                 agg_dict["is_ai_pred_added"] = "sum"
+            flow.report["total_ai_articles"] = df["is_ai_pred_added_bool"].sum()
+
         
         if "dense_vs_core_rouge_eval" in df.columns:
             agg_dict["dense_vs_core_rouge_eval"] = "mean"
@@ -197,7 +197,8 @@ def _gather_domain_stats(df: pd.DataFrame, flow) -> None:
                 # Only include these reports if the relevant columns exist
                 if "is_ai_pred_added_bool" in domain_stats.columns or "is_ai_pred_added" in domain_stats.columns:
                     ai_col = "is_ai_pred_added_bool" if "is_ai_pred_added_bool" in domain_stats.columns else "is_ai_pred_added"
-                    flow.report["domain_top_ai"] = domain_stats.nlargest(5, ai_col).to_dict(orient="records")
+                    flow.report["domain_top_ai"] = domain_stats.nlargest(20, ai_col).to_dict(orient="records")
+                    flow.report["domain_worst_ai"] = domain_stats.nsmallest(20, ai_col).to_dict(orient="records")
                 
                 if "dense_vs_core_rouge_eval" in domain_stats.columns:
                     flow.report["domain_top_rouge"] = domain_stats.nlargest(5, "dense_vs_core_rouge_eval").to_dict(orient="records")
@@ -218,6 +219,29 @@ def _gather_domain_stats(df: pd.DataFrame, flow) -> None:
                 except Exception:
                     logger.error("Unable to calculate even basic domain statistics")
 
+def _gather_tag_stats(df: pd.DataFrame, flow) -> None:
+    """Gather tagging statistics across replicated articles."""
+    if "tags_pred_added" in df.columns:
+        valid_tags = df["tags_pred_added"].dropna()
+
+        if not valid_tags.empty:
+            # Count total number of predicted tags across all articles
+            total_tags_predicted = sum(len(tags) for tags in valid_tags if isinstance(tags, list))
+
+            # Count average number of predicted tags per article
+            avg_tags_per_article = total_tags_predicted / len(valid_tags)
+
+            # Unique clusters (flatten and count)
+            unique_clusters = set()
+            for tags in valid_tags:
+                if isinstance(tags, list):
+                    unique_clusters.update(tags)
+            
+            flow.report["tagging_stats"] = {
+                "total_tags_predicted": total_tags_predicted,
+                "avg_tags_per_article": avg_tags_per_article,
+                "total_unique_clusters": len(unique_clusters)
+            }
 
 def _generate_report_card(flow) -> None:
     """Generate a visual report card with metrics and charts."""
@@ -226,6 +250,10 @@ def _generate_report_card(flow) -> None:
     # Display basic statistics
     current.card.append(Markdown(f"**Total Articles Processed**: {len(flow.processed_df)}" if hasattr(flow, 'processed_df') else "**No articles processed**"))
     
+    # Display number of AI articles
+    if "total_ai_articles" in flow.report:
+        current.card.append(Markdown(f"**Total AI Articles**: {flow.report['total_ai_articles']}"))
+
     # Completion rates
     if "completion_rate" in flow.report:
         current.card.append(Markdown("## 📈 Step Completion Rates"))
@@ -259,6 +287,19 @@ def _generate_report_card(flow) -> None:
         except Exception as e:
             logger.warning(f"Could not create VegaChart for completion rates: {e}")
 
+    # Tagging statistics overview
+    if "tagging_stats" in flow.report:
+        current.card.append(Markdown("## 🏷️ Tagging Statistics Overview"))
+        tag_stats = flow.report["tagging_stats"]
+
+        tag_table = [
+            ["Metric", "Value"],
+            ["Total Tags Predicted", f"{tag_stats['total_tags_predicted']}"],
+            ["Avg Tags per Article", f"{tag_stats['avg_tags_per_article']:.2f}"],
+            ["Total Unique Clusters", f"{tag_stats['total_unique_clusters']}"],
+        ]
+        current.card.append(Table(tag_table))
+
     # Display top clusters
     if "top_predicted_clusters" in flow.report:
         current.card.append(Markdown("## 🔍 Top Predicted Clusters"))
@@ -289,10 +330,20 @@ def _generate_report_card(flow) -> None:
 
     # Display domain statistics
     if "domain_article_counts" in flow.report:
-        current.card.append(Markdown("## 🏢 Top Domains by Article Count"))
-        domain_table = [["Domain", "Article Count"]]
-        for record in flow.report["domain_article_counts"]:
-            domain_table.append([record["url_domain"], record["article_count"]])
+        current.card.append(Markdown("## 🏢 Top Domains for AI Articles"))
+        domain_table = [["Domain", "AI Article Count"]]
+        for record in flow.report["domain_top_ai"]:
+            domain_table.append([record["url_domain"], record["is_ai_pred_added_bool"]])
+        current.card.append(Table(domain_table))
+        current.card.append(Markdown("## 🏢 Worst Domains for AI Articles"))
+        domain_table = [["Domain", "AI Article Count"]]
+        for record in flow.report["domain_worst_ai"]:
+            print(record)
+            rate = record["is_ai_pred_added_bool"]/record['article_count']
+            domain_table.append([
+                record["url_domain"],
+                f"{rate:.2%}"
+            ])
         current.card.append(Table(domain_table))
 
     # Show top and bottom performers if available
@@ -311,7 +362,7 @@ def _generate_report_card(flow) -> None:
         current.card.append(Table(rouge_worst_table))
 
     # Show top and bottom performers for BERTScore if available
-    if all(key in flow.report for key in ["bert_best", "bert_worst"]):
+    if False and all(key in flow.report for key in ["bert_best", "bert_worst"]):
         current.card.append(Markdown("## 📊 BERTScore (Summary vs Dense Summary) Analysis"))
 
         current.card.append(Markdown("### Top 5 Articles by BERTScore"))

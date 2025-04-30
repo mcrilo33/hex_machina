@@ -13,7 +13,8 @@ def _clean_up_tables(storage, flow):
     if not flow.keep_replicates:
         storage.db.drop_table("tags")
         storage.db.drop_table("tag_clusters")
-        storage.db.drop_table(flow.replicates_table)
+        # TODO REMOVE COMMENT
+        #storage.db.drop_table(flow.replicates_table)
         logger.info("✅ Database cleaned.")
     else:
         logger.info("✅ Database not cleaned, keeping replicates.")

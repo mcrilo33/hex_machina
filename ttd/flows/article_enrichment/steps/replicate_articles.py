@@ -21,8 +21,9 @@ def execute(flow):
     replicated_articles = []
 
     for idx, article in enumerate(flow.articles):
+        print(len(flow.articles))
         record = {
-            "table_name": flow.replicate_table
+            "table_name": flow.replicates_table
         }
 
         # Copy article basic fields
@@ -78,12 +79,14 @@ def execute(flow):
             record["dense_vs_core_rouge_eval"] = rouge_result["rougeL"]
 
         if "summary" in record and "dense_summary_added" in record:
-            bert_result = bert_score.compute(
-                predictions=[record["dense_summary_added"]],
-                references=[record["summary"]],
-                lang="en"
-            )
-            record["bert_score_summary_vs_dense_eval"] = float(bert_result["f1"][0])
+            bert_result = 0
+            # TO DELETE takes too much time
+            # bert_result = bert_score.compute(
+            #     predictions=[record["dense_summary_added"]],
+            #     references=[record["summary"]],
+            #     lang="en"
+            # )
+            # record["bert_score_summary_vs_dense_eval"] = float(bert_result["f1"][0])
 
         if "tags" in record and "tags_pred_added" in record:
             tags = record["tags"]
@@ -98,7 +101,7 @@ def execute(flow):
         logger.info(f"✅ Replicated {idx+1}/{len(flow.articles)} articles.")
         # TODO Fix ArtifactManager_lazy_load SHOUlD OFFLOAD LARGE FIELDS
         del record["text_content"]
-        storage.save(flow.replicate_table, storage.lazy_load(record))
+        storage.save(flow.replicates_table, storage.lazy_load(record))
         replicated_articles.append(record)
         logger.info(f"✅ Replicated {idx+1}/{len(flow.articles)} articles.")
 

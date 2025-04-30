@@ -21,14 +21,17 @@ def execute(flow):
         "errors": []
     }
 
-    for idx in range(len(flow.articles)):
+    dense_summaries = flow.metrics["models_io"]["dense_summarizer_spec"]["outputs"]
+    for idx, dense_summary in enumerate(dense_summaries):
         # TODO REMOVE TRUE
-        if True or flow.metrics["models_io"]["article_is_ai_classifier_spec"]["outputs"][idx]["output"]:
-            dense_summary = flow.metrics["models_io"]["dense_summarizer_spec"]["outputs"][idx]
+        if True or dense_summary: 
             inputs, outputs, errors = predict(model_spec_name, [dense_summary])
             flow.metrics["models_io"][model_spec_name]["inputs"] += inputs
             flow.metrics["models_io"][model_spec_name]["outputs"] += outputs
             flow.metrics["models_io"][model_spec_name]["errors"] += errors
+        else:
+            flow.metrics["models_io"][model_spec_name]["inputs"].append(None)
+            flow.metrics["models_io"][model_spec_name]["outputs"].append(None)
 
     total_time = time.time() - start_time
     flow.metrics.setdefault("step_duration", {})[step_name] = total_time
