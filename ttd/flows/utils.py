@@ -25,7 +25,7 @@ def predict(model_spec_name, data):
         logger.info(safe_pretty_print(validated_input))
         # TODO CHANGE THIS LINE
         # model_inputs.append(validated_input)
-        model_inputs.append({"article_id": input.get("doc_id", None)})
+        model_inputs.append({"article_id": input["doc_id"]})
         pred_start_time = time.time()
         try:
             pred_success = True
@@ -35,7 +35,7 @@ def predict(model_spec_name, data):
             errors.append({
                 "index": idx,
                 "error_message": str(e),
-                "article_id": article.get("doc_id", None)
+                "article_id": input["doc_id"]
             })
             pred_success = False
         if pred_success:

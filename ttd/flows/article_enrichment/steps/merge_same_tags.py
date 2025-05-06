@@ -40,9 +40,17 @@ def execute(flow):
                     merged_tags[tag] = {
                         "output": tag,
                         "history": [flow.articles[idx]["published_date"]],
+                        "doc_ids": [{
+                            "original_table_name": flow.articles_table,
+                            "original_doc_id": str(flow.articles[idx]["doc_id"])
+                        }]
                     }
                 else:
                     merged_tags[tag]["history"].append(flow.articles[idx]["published_date"])
+                    merged_tags[tag]["doc_ids"].append({
+                        "original_table_name": flow.articles_table,
+                        "original_doc_id": str(flow.articles[idx]["doc_id"])
+                    })
                 logger.info(f"✅ Merged tags {len(merged_tags)} - {count_tags} Items")
                 logger.info(safe_pretty_print(merged_tags))
             pred_duration = time.time() - pred_start_time
@@ -52,7 +60,7 @@ def execute(flow):
         except Exception as e:
             logger.error(f"❌ Error in {step_name} at article {idx}: {str(e)}")
             flow.metrics["models_io"][model_spec_name]["errors"].append(
-                flow.errors[step_name].append({
+                flow.metrics.models_io[step_name].append({
                     "index": idx,
                     "error_message": str(e),
                     "article_id": flow.articles[idx].get("doc_id", None)

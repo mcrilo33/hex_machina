@@ -45,15 +45,14 @@ def execute(flow):
     step_name = "load_articles"
     start_time = time.time()
     flow.metrics.setdefault("step_start_times", {})[step_name] = start_time
+
     storage = TTDStorage(flow.config.get("db_path"))
 
     articles = _load_query(storage, flow.articles_table, flow.date_threshold,
                            flow.articles_limit)
 
-    logger.info("✅ Filtering out already replicated articles if needed : "
-                f"keep_replicates={flow.keep_replicates}")
-    if flow.keep_replicates:
-        articles = _filter_already_replicated_articles(storage, articles,
+    logger.info("✅ Filtering out already replicated articles...")
+    articles = _filter_already_replicated_articles(storage, articles,
                                                       flow.replicates_table)
     flow.articles = articles
     logger.info(f"✅ Loaded {len(flow.articles)} articles...")

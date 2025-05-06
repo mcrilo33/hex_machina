@@ -8,6 +8,19 @@ from ttd.utils.print import safe_pretty_print
 logger = logging.getLogger(__name__)
 
 
+def _filter_already_tagged_articles(merge_tag, already_tagged_ids):
+    """Filter out already tagged articles."""
+    new_tag = {
+        "output": merge_tag["output"],
+        "history": [],
+        "doc_ids": []
+    }
+    for doc_id, history in zip(merge_tag["doc_ids"], merge_tag["history"]):
+        if doc_id["original_doc_id"] not in already_tagged_ids:
+            new_tag["history"].append(history)
+            new_tag["doc_ids"].append(doc_id)
+    return new_tag
+
 def execute(flow):
     """Save or update tags in the database."""
     logger.info("Saving merged tags to database...")
@@ -23,10 +36,18 @@ def execute(flow):
     }
 
     storage = TTDStorage(flow.config.get("db_path"))
+    TaggedArticle = Query()
+    tagged_articles = storage.search("tagged_articles",
+                                     TaggedArticle.original_table_name == flow.articles_table)
+    ALREADY_TAGGED_IDS = set()
+    NEW_TAGGED_IDS = set()
+    for article in tagged_articles:
+        ALREADY_TAGGED_IDS.add(article["original_doc_id"])
     tags = []
     TagWord = Query()
     data = flow.merged_tags.values()
     for idx, pred in enumerate(data):
+        pred = _filter_already_tagged_articles(pred, ALREADY_TAGGED_IDS)
         try:
             pred_start_time = time.time()
             tag_records = storage.search("tags", TagWord.name == pred["output"])
@@ -61,6 +82,11 @@ def execute(flow):
                     "article_id": flow.articles[idx].get("doc_id", None)
                 })
             )
+        else:
+            for doc in pred["doc_ids"]:
+                if doc["original_doc_id"] not in NEW_TAGGED_IDS:
+                    storage.save("tagged_articles", doc)
+                    NEW_TAGGED_IDS.add(doc["original_doc_id"])
 
     flow.tags = tags
     total_time = time.time() - start_time
