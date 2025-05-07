@@ -37,7 +37,7 @@ class TTDStorage(TinyDBStorageService):
 
             # Handle model-specific logic
             if table_name == "models":
-                # TODO self.model_manager.save(obj)
+                # TODO ADD self.model_manager.save(obj)
                 obj["last_updated"] = obj["created_at"]
 
             # Automatically offload large or structured fields
