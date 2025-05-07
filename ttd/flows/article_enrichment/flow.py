@@ -52,7 +52,7 @@ class ArticleEnrichmentFlow(FlowSpec):
 
     clean_tables = Parameter('clean_tables',
                                 help=('Clean tables '
-                                      '(tags, tag_clusters, replicated_articles)'),
+                                      '(tags, tag_clusters, tagged_articles, replicated_articles)'),
                                 default=False)
 
     @step
