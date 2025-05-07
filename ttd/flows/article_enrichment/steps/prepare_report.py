@@ -2,14 +2,49 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+from datetime import datetime
 from collections import Counter
 from typing import Dict, List, Any, Optional
-from metaflow.cards import Markdown, Table, Image, VegaChart
+from metaflow.cards import Markdown, Table, Image
 from metaflow import current, step, card
+import os
+import uuid
+from PIL import Image as PILImage
+
+def combine_images_horizontally(path1: str, path2: str) -> bytes:
+    img1 = PILImage.open(path1)
+    img2 = PILImage.open(path2)
+
+    # Match height
+    if img1.height != img2.height:
+        new_height = max(img1.height, img2.height)
+        img1 = img1.resize((img1.width, new_height))
+        img2 = img2.resize((img2.width, new_height))
+
+    combined = PILImage.new("RGB", (img1.width + img2.width, img1.height))
+    combined.paste(img1, (0, 0))
+    combined.paste(img2, (img1.width, 0))
+
+    from io import BytesIO
+    buf = BytesIO()
+    combined.save(buf, format="PNG")
+    return buf.getvalue()
+
+def save_plot(fig, title: str) -> str:
+    plot_dir = "/tmp/metaflow_reports"
+    os.makedirs(plot_dir, exist_ok=True)
+    filename = os.path.join(plot_dir, f"{uuid.uuid4().hex}_{title}.png")
+    fig.savefig(filename, bbox_inches='tight')
+    plt.close(fig)
+    return filename
+
+def load_image(path: str) -> Image:
+    with open(path, "rb") as f:
+        return Image(f.read())
 
 logger = logging.getLogger(__name__)
 
-@card
+@card(type='default')
 @step
 def execute(flow) -> None:
     """Generate a detailed report from replicated articles."""
@@ -24,451 +59,435 @@ def execute(flow) -> None:
     df = pd.DataFrame(flow.replicated_articles)
     flow.report = {}
 
-    # Completion rate
-    step_columns = [
-        "is_ai_pred_added", "dense_summary_added", "core_line_summary_added",
-        "tags_pred_added", "clusters_names_in_order_added"
-    ]
-    # Only use columns that actually exist in the DataFrame
-    available_steps = [col for col in step_columns if col in df.columns]
-    
-    if available_steps:
-        completion = {step: [
-            df[step].notnull().mean(),
-            df[step].notnull().sum()
-        ] for step in available_steps}
-        flow.report["completion_rate"] = completion
-    
-    # Execution time
-    if "execution_time" in df.columns:
-        flow.report["avg_execution_time"] = df["execution_time"].mean()
-        flow.report["min_execution_time"] = df["execution_time"].min()
-        flow.report["max_execution_time"] = df["execution_time"].max()
+    # --- Article Enrichment Report ---
+    total_articles = len(df)
+    ai_articles = df['is_ai_added'].sum() if 'is_ai_added' in df.columns else 0
 
-    # Html/Text content length anomaly
-    if "html_content_length" in df.columns and "text_content_length" in df.columns:
-        diff = abs(df["html_content_length"] - df["text_content_length"])
-        df["content_length_anomaly"] = diff > diff.mean() + 2 * diff.std()
-        flow.report["content_anomalies_count"] = df["content_length_anomaly"].sum()
-        flow.report["content_anomalies_pct"] = df["content_length_anomaly"].mean()
+    summary_line = f"**Total Articles Processed**: {total_articles} | **AI Articles Found**: {ai_articles}"
+    logger.info(summary_line)
 
-    # Summary/text ratio outliers
-    if "summary_text_ratio" in df.columns:
-        ratio_mean = df["summary_text_ratio"].mean()
-        ratio_std = df["summary_text_ratio"].std()
-        df["summary_ratio_outlier"] = (df["summary_text_ratio"] > (ratio_mean + 2 * ratio_std)) | \
-                                     (df["summary_text_ratio"] < (ratio_mean - 2 * ratio_std))
-        flow.report["summary_ratio_outliers_count"] = df["summary_ratio_outlier"].sum()
-        flow.report["summary_ratio_outliers_pct"] = df["summary_ratio_outlier"].mean()
+    # Initialize report Markdown
+    report_sections = [Markdown("# 🧠 Article Enrichment Report"), Markdown(summary_line)]
 
-    # Step-level timing and errors
-    if hasattr(flow, "metrics") and isinstance(flow.metrics, dict):
-        step_metrics = []
-        for step_name in flow.metrics.get("processing_times", {}):
-            step_data = {
-                "step_name": step_name,
-                "total_processing_time": flow.metrics["processing_times"].get(step_name, 0.0),
-                "avg_prediction_time": flow.metrics["avg_prediction_times"].get(step_name, 0.0),
-                "errors": len(flow.errors.get(step_name, [])) if hasattr(flow, "errors") else 0
-            }
-            step_metrics.append(step_data)
-        flow.report["step_metrics"] = step_metrics
+    # --- Step Overview Section ---
+    metrics = flow.metrics
+    step_start_times = metrics.get("step_start_times", {})
+    step_durations = metrics.get("step_duration", {})
+    models_io = metrics.get("models_io", {})
+    models_spec_names = metrics.get("models_spec_names", {})
 
-    # Capture token usage per step
-    if hasattr(flow, "metrics") and isinstance(flow.metrics, dict):
-        token_usage_details = []
-        for step_name, usage in flow.metrics.get("avg_tokens_usage", {}).items():
-            token_usage_details.append({
-                "step_name": step_name,
-                "avg_prompt_tokens": usage.get("avg_prompt_tokens", 0.0),
-                "avg_completion_tokens": usage.get("avg_completion_tokens", 0.0),
-                "avg_total_tokens": usage.get("avg_total_tokens", 0.0),
-            })
-        flow.report["token_usage_per_step"] = token_usage_details
-    
-    # Capture errors details per step
-    if hasattr(flow, "errors") and isinstance(flow.errors, dict):
-        error_details = {}
-        for step_name, errors_list in flow.errors.items():
-            if errors_list:
-                error_details[step_name] = errors_list
-        flow.report["errors_per_step"] = error_details
+    overview_table_data = []
 
-    # Top worst and best scoring metrics
-    _gather_top_bottom(df, flow)
+    # Combine all steps from either start_times or durations
+    all_steps = set(step_start_times.keys()) | set(step_durations.keys())
 
-    # Cluster stats
-    _gather_cluster_stats(df, flow)
+    total_prompt_tokens = []
+    total_completion_tokens = []
+    total_total_tokens = []
+    avg_prompt_tokens = []
+    avg_completion_tokens = []
+    avg_total_tokens = []
 
-    # Domain-level stats
-    _gather_domain_stats(df, flow)
+    for step in sorted(all_steps, key=lambda s: step_start_times.get(s, 0)):
+        duration = step_durations.get(step, 0)
+        start_time = step_start_times.get(step)
+        start_time_str = datetime.utcfromtimestamp(start_time).strftime('%Y-%m-%d %H:%M:%S') if start_time else "N/A"
 
-    # Tag statistics
-    _gather_tag_stats(df, flow)
+        # Try to get model key (if it’s a model-related step)
+        model_key = models_spec_names.get(step)
+        model_io = models_io.get(model_key, {}) if model_key else {}
 
-    logger.info(f"✅ Report metrics calculated for {len(df)} articles.")
+        inputs = model_io.get("inputs", [])
+        outputs = model_io.get("outputs", [])
+        errors = model_io.get("errors", [])
 
-    # Save the processed DataFrame for further analysis if needed
-    flow.processed_df = df
-    
-    # Generate visualization card
-    _generate_report_card(flow)
+        # Compute metrics
+        num_inputs = len([i for i in inputs if i is not None])
+        num_outputs = len([o for o in outputs if o is not None])
+        num_errors = len(errors)
+        completion_rate = num_outputs / num_inputs if num_inputs > 0 else 0
+        time_per_item = [o["metadata"]["duration"] for o in outputs if o and "metadata" in o]
 
+        prompt_tokens = [o["metadata"]["prompt_tokens"]
+                         for o in outputs if o and "metadata" in o and "prompt_tokens" in o["metadata"]]
+        completion_tokens = [o["metadata"]["completion_tokens"]
+                             for o in outputs if o and "metadata" in o
+                             and "completion_tokens" in o["metadata"]]
+        total_tokens = [o["metadata"]["total_tokens"]
+                        for o in outputs if o and "metadata" in o and "total_tokens" in o["metadata"]]
 
-def _gather_top_bottom(df: pd.DataFrame, flow) -> None:
-    """Gather top and bottom performing articles based on metrics."""
-    if "dense_vs_core_rouge_eval" in df.columns and df["dense_vs_core_rouge_eval"].notna().any():
-        flow.report["rouge_best"] = df.nlargest(5, "dense_vs_core_rouge_eval")[["title", "dense_vs_core_rouge_eval"]].to_dict(orient="records")
-        flow.report["rouge_worst"] = df.nsmallest(5, "dense_vs_core_rouge_eval")[["title", "dense_vs_core_rouge_eval"]].to_dict(orient="records")
+        def safe_avg(lst):
+            return sum(lst) / len(lst) if lst else 0
+        def safe_print(lst):
+            return f"{lst:.1f}" if lst!=0 else "N/A"
 
-    if "bert_score_summary_vs_dense_eval" in df.columns and df["bert_score_summary_vs_dense_eval"].notna().any():
-        flow.report["bert_best"] = df.nlargest(5, "bert_score_summary_vs_dense_eval")[["title", "bert_score_summary_vs_dense_eval"]].to_dict(orient="records")
-        flow.report["bert_worst"] = df.nsmallest(5, "bert_score_summary_vs_dense_eval")[["title", "bert_score_summary_vs_dense_eval"]].to_dict(orient="records")
-
-    if "tag_similarity_eval" in df.columns and df["tag_similarity_eval"].notna().any():
-        flow.report["tag_similarity_best"] = df.nlargest(5, "tag_similarity_eval")[["title", "tag_similarity_eval"]].to_dict(orient="records")
-        flow.report["tag_similarity_worst"] = df.nsmallest(5, "tag_similarity_eval")[["title", "tag_similarity_eval"]].to_dict(orient="records")
-
-
-def _gather_cluster_stats(df: pd.DataFrame, flow) -> None:
-    """Analyze and gather cluster statistics."""
-    if "tags_pred_added" in df.columns:
-        # Handle potential NaN values and ensure lists are properly processed
-        valid_tags = df["tags_pred_added"].dropna()
-        if not valid_tags.empty:
-            # Convert any non-list values to lists if necessary
-            all_tags = []
-            for tags in valid_tags:
-                if isinstance(tags, list):
-                    all_tags.extend(tags)
-                elif isinstance(tags, str):
-                    # Handle case where tags might be stored as a string
-                    try:
-                        import json
-                        parsed_tags = json.loads(tags.replace("'", "\""))
-                        if isinstance(parsed_tags, list):
-                            all_tags.extend(parsed_tags)
-                    except:
-                        # If parsing fails, treat as a single tag
-                        all_tags.append(tags)
-            
-            tag_counter = Counter(all_tags)
-            flow.report["top_predicted_clusters"] = tag_counter.most_common(10)
-            flow.report["total_unique_clusters"] = len(tag_counter)
-
-
-def _gather_domain_stats(df: pd.DataFrame, flow) -> None:
-    """Analyze and gather domain-level statistics."""
-    if "url_domain" in df.columns:
-        # Create a dict with column name as key and aggregation function as value
-        agg_dict = {}
-        
-        if "is_ai_pred_added" in df.columns:
-            # Convert string 'true' to boolean True if needed
-            if df["is_ai_pred_added"].dtype == 'object':
-                df["is_ai_pred_added_bool"] = df["is_ai_pred_added"].astype(str).str.lower() == "true"
-                agg_dict["is_ai_pred_added_bool"] = "sum"
-            else:
-                agg_dict["is_ai_pred_added"] = "sum"
-            flow.report["total_ai_articles"] = df["is_ai_pred_added_bool"].sum()
-
-        
-        if "dense_vs_core_rouge_eval" in df.columns:
-            agg_dict["dense_vs_core_rouge_eval"] = "mean"
-        
-        if "bert_score_summary_vs_dense_eval" in df.columns:
-            agg_dict["bert_score_summary_vs_dense_eval"] = "mean"
-        
-        # Add count of articles per domain (correct format for article_count)
-        # We don't use the tuple format with agg_dict, but directly include it
-        
-        # Only proceed if we have aggregations to perform
-        if agg_dict:
-            try:
-                # First, get basic domain stats with article count
-                domain_stats = df.groupby("url_domain").size().reset_index(name="article_count")
-                
-                # Then, if we have other metrics, add them
-                if agg_dict:
-                    metrics_df = df.groupby("url_domain").agg(agg_dict).reset_index()
-                    # Merge with the basic stats
-                    domain_stats = domain_stats.merge(metrics_df, on="url_domain", how="left")
-                
-                # Only include these reports if the relevant columns exist
-                if "is_ai_pred_added_bool" in domain_stats.columns or "is_ai_pred_added" in domain_stats.columns:
-                    ai_col = "is_ai_pred_added_bool" if "is_ai_pred_added_bool" in domain_stats.columns else "is_ai_pred_added"
-                    flow.report["domain_top_ai"] = domain_stats.nlargest(20, ai_col).to_dict(orient="records")
-                    flow.report["domain_worst_ai"] = domain_stats.nsmallest(20, ai_col).to_dict(orient="records")
-                
-                if "dense_vs_core_rouge_eval" in domain_stats.columns:
-                    flow.report["domain_top_rouge"] = domain_stats.nlargest(5, "dense_vs_core_rouge_eval").to_dict(orient="records")
-                
-                if "bert_score_summary_vs_dense_eval" in domain_stats.columns:
-                    flow.report["domain_top_bert"] = domain_stats.nlargest(5, "bert_score_summary_vs_dense_eval").to_dict(orient="records")
-                
-                # Always include domain article counts
-                flow.report["domain_article_counts"] = domain_stats.nlargest(10, "article_count").to_dict(orient="records")
-                
-            except Exception as e:
-                logger.error(f"Error calculating domain statistics: {str(e)}")
-                # Still provide basic domain counts if possible
-                try:
-                    domain_counts = df["url_domain"].value_counts().reset_index()
-                    domain_counts.columns = ["url_domain", "article_count"]
-                    flow.report["domain_article_counts"] = domain_counts.head(10).to_dict(orient="records")
-                except Exception:
-                    logger.error("Unable to calculate even basic domain statistics")
-
-def _gather_tag_stats(df: pd.DataFrame, flow) -> None:
-    """Gather tagging statistics across replicated articles."""
-    if "tags_pred_added" in df.columns:
-        valid_tags = df["tags_pred_added"].dropna()
-
-        if not valid_tags.empty:
-            # Count total number of predicted tags across all articles
-            total_tags_predicted = sum(len(tags) for tags in valid_tags if isinstance(tags, list))
-
-            # Count average number of predicted tags per article
-            avg_tags_per_article = total_tags_predicted / len(valid_tags)
-
-            # Unique clusters (flatten and count)
-            unique_clusters = set()
-            for tags in valid_tags:
-                if isinstance(tags, list):
-                    unique_clusters.update(tags)
-            
-            flow.report["tagging_stats"] = {
-                "total_tags_predicted": total_tags_predicted,
-                "avg_tags_per_article": avg_tags_per_article,
-                "total_unique_clusters": len(unique_clusters)
-            }
-
-def _generate_report_card(flow) -> None:
-    """Generate a visual report card with metrics and charts."""
-    current.card.append(Markdown("# 📊 Article Enrichment Report"))
-    
-    # Display basic statistics
-    current.card.append(Markdown(f"**Total Articles Processed**: {len(flow.processed_df)}" if hasattr(flow, 'processed_df') else "**No articles processed**"))
-    
-    # Display number of AI articles
-    if "total_ai_articles" in flow.report:
-        current.card.append(Markdown(f"**Total AI Articles**: {flow.report['total_ai_articles']}"))
-
-    # Completion rates
-    if "completion_rate" in flow.report:
-        current.card.append(Markdown("## 📈 Step Completion Rates"))
-        
-        # Create a more visual table with formatted percentages
-        completion_table = [["Step", "Completion Rate", "Number of processed items"]]
-        for step, rate in flow.report["completion_rate"].items():
-            formatted_rate = f"{rate[0]:.2%}"
-            count = f"{rate[1]:,}"
-            completion_table.append([step, formatted_rate, count])
-        
-        current.card.append(Table(completion_table))
-        
-        # Create a visualization of completion rates using VegaChart
-        try:
-            completion_data = [{"step": str(k), "rate": float(v[0])} for k, v in flow.report["completion_rate"].items()]
-            vega_spec = {
-                "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-                "description": "Step Completion Rates",
-                "data": {"values": completion_data},
-                "mark": "bar",
-                "encoding": {
-                    "x": {"field": "step", "type": "nominal", "title": "Processing Step"},
-                    "y": {"field": "rate", "type": "quantitative", "title": "Completion Rate", "axis": {"format": ".0%"}},
-                    "color": {"field": "step", "type": "nominal", "legend": None}
-                },
-                "width": 400,
-                "height": 300
-            }
-            current.card.append(VegaChart(vega_spec))
-        except Exception as e:
-            logger.warning(f"Could not create VegaChart for completion rates: {e}")
-
-    # Tagging statistics overview
-    if "tagging_stats" in flow.report:
-        current.card.append(Markdown("## 🏷️ Tagging Statistics Overview"))
-        tag_stats = flow.report["tagging_stats"]
-
-        tag_table = [
-            ["Metric", "Value"],
-            ["Total Tags Predicted", f"{tag_stats['total_tags_predicted']}"],
-            ["Avg Tags per Article", f"{tag_stats['avg_tags_per_article']:.2f}"],
-            ["Total Unique Clusters", f"{tag_stats['total_unique_clusters']}"],
+        if step == "load_articles":
+            num_inputs = len(flow.articles)
+            completion_rate = 1.0
+        if step == "replicate_articles":
+            num_inputs = len(flow.replicated_articles)
+            completion_rate = len(flow.replicated_articles) / len(flow.articles)
+        row = [
+            step,
+            num_inputs,
+            f"{completion_rate:.1%}",
+            start_time_str,
+            f"{duration:.2f}s",
+            f"{safe_avg(time_per_item):.2f}s",
+            safe_print(safe_avg(prompt_tokens)),
+            safe_print(safe_avg(completion_tokens)),
+            safe_print(safe_avg(total_tokens)),
+            num_errors,
         ]
-        current.card.append(Table(tag_table))
+        overview_table_data.append(row)
 
-    # Display top clusters
-    if "top_predicted_clusters" in flow.report:
-        current.card.append(Markdown("## 🔍 Top Predicted Clusters"))
-        cluster_table = [["Cluster", "Count"]]
-        for tag, count in flow.report["top_predicted_clusters"]:
-            cluster_table.append([tag, count])
-        current.card.append(Table(cluster_table))
-        
-        # Try to create a visualization of top clusters
-        try:
-            cluster_data = [{"cluster": tag, "count": count} for tag, count in flow.report["top_predicted_clusters"]]
-            vega_spec = {
-                "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-                "description": "Top Predicted Clusters",
-                "data": {"values": cluster_data},
-                "mark": "bar",
-                "encoding": {
-                    "y": {"field": "cluster", "type": "nominal", "title": "Cluster", "sort": "-x"},
-                    "x": {"field": "count", "type": "quantitative", "title": "Count"},
-                    "color": {"field": "cluster", "type": "nominal", "legend": None}
-                },
-                "width": 400,
-                "height": 300
-            }
-            current.card.append(VegaChart(vega_spec))
-        except Exception as e:
-            logger.warning(f"Could not create VegaChart for clusters: {e}")
+        total_prompt_tokens.append(sum(prompt_tokens))
+        total_completion_tokens.append(sum(completion_tokens))
+        total_total_tokens.append(sum(total_tokens))
+        avg_prompt_tokens.append(safe_avg(prompt_tokens))
+        avg_completion_tokens.append(safe_avg(completion_tokens))
+        avg_total_tokens.append(safe_avg(total_tokens))
 
-    # Display domain statistics
-    if "domain_article_counts" in flow.report:
-        current.card.append(Markdown("## 🏢 Top Domains for AI Articles"))
-        domain_table = [["Domain", "AI Article Count"]]
-        for record in flow.report["domain_top_ai"]:
-            domain_table.append([record["url_domain"], record["is_ai_pred_added_bool"]])
-        current.card.append(Table(domain_table))
-        current.card.append(Markdown("## 🏢 Worst Domains for AI Articles"))
-        domain_table = [["Domain", "AI Article Count"]]
-        for record in flow.report["domain_worst_ai"]:
-            print(record)
-            rate = record["is_ai_pred_added_bool"]/record['article_count']
-            domain_table.append([
-                record["url_domain"],
-                f"{rate:.2%}"
+    current.card.append(Markdown("## 🔁 Step Overview"))
+    current.card.append(Table(
+        headers=[
+            "Step", "Items", "Completion", "Start Time", "Duration", "Avg Time/item",
+            "Avg Prompt Tokens", "Avg Completion Tokens", "Avg Total Tokens", "Errors"
+        ],
+        data=overview_table_data
+    ))
+
+    flow.report["step_overview"] = overview_table_data
+
+    # Extract data
+    steps = [row[0] for row in overview_table_data]
+    durations = [float(row[4][:-1]) for row in overview_table_data]
+    avg_time_per_item = [float(row[5][:-1]) for row in overview_table_data]
+
+    for row in overview_table_data:
+        num_items = row[1]
+
+    # Plot 1: Duration per Step
+    fig, ax = plt.subplots()
+    ax.bar(steps, durations)
+    ax.set_title("Total Duration per Step")
+    ax.set_ylabel("Seconds")
+    ax.set_xticklabels(steps, rotation=45, ha='right')
+    p1 = save_plot(fig, "duration")
+
+    # Plot 2: Avg Time per Item
+    fig, ax = plt.subplots()
+    ax.bar(steps, avg_time_per_item, color='orange')
+    ax.set_title("Avg Time per Item")
+    ax.set_ylabel("Seconds")
+    ax.set_xticklabels(steps, rotation=45, ha='right')
+    p2 = save_plot(fig, "avg_time")
+
+    # Combine Plot 1 & 2
+    combined_bytes_1 = combine_images_horizontally(p1, p2)
+    current.card.append(Image(combined_bytes_1))
+
+
+    # Plot 3: Total Tokens
+    fig, ax = plt.subplots()
+    width = 0.25
+    x = np.arange(len(steps))
+    ax.bar(x - width, total_prompt_tokens, width=width, label='Prompt')
+    ax.bar(x, total_completion_tokens, width=width, label='Completion')
+    ax.bar(x + width, total_total_tokens, width=width, label='Total')
+    ax.set_title("Total Tokens per Step")
+    ax.set_ylabel("Tokens")
+    ax.set_xticks(x)
+    ax.set_xticklabels(steps, rotation=45, ha='right')
+    ax.legend()
+    p3 = save_plot(fig, "total_tokens")
+
+    # Plot 4: Avg Tokens
+    fig, ax = plt.subplots()
+    ax.bar(x - width, avg_prompt_tokens, width=width, label='Prompt')
+    ax.bar(x, avg_completion_tokens, width=width, label='Completion')
+    ax.bar(x + width, avg_total_tokens, width=width, label='Total')
+    ax.set_title("Avg Tokens per Step")
+    ax.set_ylabel("Tokens")
+    ax.set_xticks(x)
+    ax.set_xticklabels(steps, rotation=45, ha='right')
+    ax.legend()
+    p4 = save_plot(fig, "avg_tokens")
+
+    # Combine Plot 3 & 4
+    combined_bytes_2 = combine_images_horizontally(p3, p4)
+    current.card.append(Image(combined_bytes_2))
+
+    current.card.append(Markdown("## 🌐 Domains Overview"))
+
+    if all(col in df.columns for col in ["url_domain", "is_ai_added", "clusters_names_in_order_added"]):
+        domain_table_data = []
+
+        for domain, group in df.groupby("url_domain"):
+            total_articles = len(group)
+            ai_count = group["is_ai_added"].astype(int).sum()
+            ai_rate = ai_count / total_articles if total_articles > 0 else 0
+
+            # count clusters
+            cluster_counter = Counter()
+            for cluster_list in group["clusters_names_in_order_added"]:
+                if isinstance(cluster_list, list):
+                    cluster_counter.update(cluster_list)
+
+            top_clusters = cluster_counter.most_common(5)
+            top_clusters_str = ", ".join(
+                f"{name}: {count / total_articles:.1%}" for name, count in top_clusters
+            ) if top_clusters else "n/a"
+
+            domain_table_data.append([
+                domain,
+                str(ai_count),
+                f"{ai_rate:.1%}",
+                top_clusters_str
             ])
-        current.card.append(Table(domain_table))
 
-    # Show top and bottom performers if available
-    if all(key in flow.report for key in ["rouge_best", "rouge_worst"]):
-        current.card.append(Markdown("## 📊 ROUGE Score (Dense vs Core Summaries) Analysis"))
-        current.card.append(Markdown("### Top 5 Articles by ROUGE Score"))
-        rouge_best_table = [["Title", "ROUGE Score"]]
-        for article in flow.report["rouge_best"]:
-            rouge_best_table.append([article["title"], f"{article['dense_vs_core_rouge_eval']:.4f}"])
-        current.card.append(Table(rouge_best_table))
-        
-        current.card.append(Markdown("### Bottom 5 Articles by ROUGE Score"))
-        rouge_worst_table = [["Title", "ROUGE Score"]]
-        for article in flow.report["rouge_worst"]:
-            rouge_worst_table.append([article["title"], f"{article['dense_vs_core_rouge_eval']:.4f}"])
-        current.card.append(Table(rouge_worst_table))
+        # sort table by ai count descending
+        domain_table_data.sort(key=lambda x: x[1], reverse=True)
 
-    # Show top and bottom performers for BERTScore if available
-    if False and all(key in flow.report for key in ["bert_best", "bert_worst"]):
-        current.card.append(Markdown("## 📊 BERTScore (Summary vs Dense Summary) Analysis"))
+        current.card.append(Table(
+            headers=["domain", "ai count", "ai rate", "top 5 clusters with rate"],
+            data=domain_table_data
+        ))
 
-        current.card.append(Markdown("### Top 5 Articles by BERTScore"))
-        bert_best_table = [["Title", "BERTScore (F1)"]]
-        for article in flow.report["bert_best"]:
-            bert_best_table.append([article["title"], f"{article['bert_score_summary_vs_dense_eval']:.4f}"])
-        current.card.append(Table(bert_best_table))
+        # optional: also add the scatter plot again
+        domains = [row[0] for row in domain_table_data]
+        ai_counts = [row[1] for row in domain_table_data]
+        ai_rates = [float(row[2].strip('%')) / 100 for row in domain_table_data]
 
-        current.card.append(Markdown("### Bottom 5 Articles by BERTScore"))
-        bert_worst_table = [["Title", "BERTScore (F1)"]]
-        for article in flow.report["bert_worst"]:
-            bert_worst_table.append([article["title"], f"{article['bert_score_summary_vs_dense_eval']:.4f}"])
-        current.card.append(Table(bert_worst_table))
+        fig, ax = plt.subplots(figsize=(10, 5))
+        scatter = ax.scatter(domains, ai_counts, c=ai_rates, cmap='viridis', s=100, edgecolor='k')
+        ax.set_title("ai article count vs ai rate per domain")
+        ax.set_xlabel("domain")
+        ax.set_ylabel("ai article count")
+        ax.set_xticks(np.arange(len(domains)))
+        ax.set_xticklabels(domains, rotation=45, ha='right')
+        cbar = fig.colorbar(scatter, ax=ax)
+        cbar.set_label("ai rate")
 
-    # Show top and bottom performers for Tag Similarity if available
-    if all(key in flow.report for key in ["tag_similarity_best", "tag_similarity_worst"]):
-        current.card.append(Markdown("## 🏷️ Tag Similarity Analysis"))
+        domain_plot_path = save_plot(fig, "ai_domain_scatter_combined")
+        current.card.append(load_image(domain_plot_path))
 
-        current.card.append(Markdown("### Top 5 Articles by Tag Similarity"))
-        tag_similarity_best_table = [["Title", "Tag Similarity"]]
-        for article in flow.report["tag_similarity_best"]:
-            tag_similarity_best_table.append([article["title"], f"{article['tag_similarity_eval']:.4f}"])
-        current.card.append(Table(tag_similarity_best_table))
+        # save to report
+        flow.report["domain_analysis_table"] = domain_table_data
 
-        current.card.append(Markdown("### Bottom 5 Articles by Tag Similarity"))
-        tag_similarity_worst_table = [["Title", "Tag Similarity"]]
-        for article in flow.report["tag_similarity_worst"]:
-            tag_similarity_worst_table.append([article["title"], f"{article['tag_similarity_eval']:.4f}"])
-        current.card.append(Table(tag_similarity_worst_table))
+    else:
+        current.card.append(markdown("_missing required columns: `url_domain`, `is_ai_added`, or `clusters_names_in_order_added`._"))
 
+    current.card.append(Markdown("## Summaries Overview"))
+    if "dense_summary_length_added" in df.columns and "text_content_length" in df.columns and "core_line_summary_length_added" in df.columns:
+        # compute ratio
+        ratio = df["dense_summary_length_added"] / df["text_content_length"]
+        core_lengths = df["core_line_summary_length_added"]
+        rouge_scores = df["title_vs_core_rouge_eval"]
 
-    # Add a note about data anomalies if detected
-    if "content_anomalies_pct" in flow.report:
-        current.card.append(Markdown("## ⚠️ Data Anomalies"))
-        anomaly_table = [["Anomaly Type", "Count", "Percentage"]]
-        
-        if "content_anomalies_pct" in flow.report:
-            anomaly_table.append([
-                "Content Length Discrepancies", 
-                f"{flow.report['content_anomalies_count']}", 
-                f"{flow.report['content_anomalies_pct']:.2%}"
-            ])
-            
-        if "summary_ratio_outliers_pct" in flow.report:
-            anomaly_table.append([
-                "Summary/Text Ratio Outliers", 
-                f"{flow.report['summary_ratio_outliers_count']}", 
-                f"{flow.report['summary_ratio_outliers_pct']:.2%}"
-            ])
-            
-        current.card.append(Table(anomaly_table))
-    
-    
-    # Step metrics overview
-    if "step_metrics" in flow.report:
-        current.card.append(Markdown("## 🛠️ Step Metrics Overview"))
-        step_table = [["Step", "Total Time (s)", "Avg Prediction Time (s)", "Errors"]]
-        for step_data in flow.report["step_metrics"]:
-            step_table.append([
-                step_data["step_name"],
-                f"{step_data['total_processing_time']:.2f}",
-                f"{step_data['avg_prediction_time']:.4f}",
-                f"{step_data['errors']}"
-            ])
-        current.card.append(Table(step_table))
+        # clean up nans/infs
+        ratio = ratio.replace([np.inf, -np.inf], np.nan).dropna()
+        core_lengths = core_lengths.dropna()
+        rouge_scores = rouge_scores.dropna()
 
-    # Execution time metrics
-    if all(key in flow.report for key in ["avg_execution_time", "min_execution_time", "max_execution_time"]):
-        current.card.append(Markdown("## ⏱️ Execution Time Statistics"))
-        exec_time_table = [
-            ["Metric", "Value (seconds)"],
-            ["Average", f"{flow.report['avg_execution_time']:.2f}"],
-            ["Minimum", f"{flow.report['min_execution_time']:.2f}"],
-            ["Maximum", f"{flow.report['max_execution_time']:.2f}"]
-        ]
-        current.card.append(Table(exec_time_table))
+        fig, axes = plt.subplots(1, 3, figsize=(12, 5))
 
-    # Token usage overview
-    if "token_usage_per_step" in flow.report:
-        current.card.append(Markdown("## 🔢 Token Usage Overview"))
-        token_table = [["Step", "Avg Prompt Tokens", "Avg Completion Tokens", "Avg Total Tokens"]]
-        for token_data in flow.report["token_usage_per_step"]:
-            token_table.append([
-                token_data["step_name"],
-                f"{token_data['avg_prompt_tokens']:.2f}",
-                f"{token_data['avg_completion_tokens']:.2f}",
-                f"{token_data['avg_total_tokens']:.2f}",
-            ])
-        current.card.append(Table(token_table))
+        axes[0].hist(ratio, bins=20, color='skyblue', edgecolor='black')
+        axes[0].set_title("dense Summary Length Ratio")
+        axes[0].set_xlabel("dense_summary_length_added / text_content_length")
+        axes[0].set_ylabel("Number of Articles")
 
-    # Show errors per step if any
-    if "errors_per_step" in flow.report and flow.report["errors_per_step"]:
-        current.card.append(Markdown("## ⚠️ Errors by Step"))
-        
-        for step_name, errors_list in flow.report["errors_per_step"].items():
-            if not errors_list:
+        axes[1].hist(core_lengths, bins=20, color='lightgreen', edgecolor='black')
+        axes[1].set_title("Core Line Summary Length")
+        axes[1].set_xlabel("core_line_summary_length_added")
+        axes[1].set_ylabel("Number of Articles")
+
+        axes[2].hist(rouge_scores, bins=20, color='lightcoral', edgecolor='black')
+        axes[2].set_title("Rouge Score for Title vs Core Line")
+        axes[2].set_xlabel("title_vs_core_rouge_eval")
+        axes[2].set_ylabel("Number of Articles")
+
+        summary_plot_path = save_plot(fig, "summary_distributions")
+        current.card.append(load_image(summary_plot_path))
+
+        # Add to report if needed
+        flow.report["summary_distributions"] = {
+            "dense_summary_ratio": ratio.describe().to_dict(),
+            "core_line_summary_length": core_lengths.describe().to_dict(),
+            "title_vs_core_rouge_eval": rouge_scores.describe().to_dict()
+        }
+    else:
+        current.card.append(Markdown("_Missing required columns to compute summary distributions._"))
+
+    if all(col in df.columns for col in ["title", "core_line_summary_added", "title_vs_core_rouge_eval"]):
+        eval_df = df[["title", "core_line_summary_added", "title_vs_core_rouge_eval"]].dropna()
+
+        # Sort by ROUGE
+        sorted_df = eval_df.sort_values("title_vs_core_rouge_eval")
+
+        # Get Bottom 5 and Top 5
+        bottom5 = sorted_df.head(5)
+        top5 = sorted_df.tail(5)
+
+        def to_table_rows(subset):
+            return [
+                [
+                    row["title"],
+                    row["core_line_summary_added"],
+                    f"{row['title_vs_core_rouge_eval']:.3f}"
+                ]
+                for _, row in subset.iterrows()
+            ]
+
+        current.card.append(Markdown("### 🔻 Bottom 5 ROUGE Scores"))
+        current.card.append(Table(
+            headers=["Title", "Core Summary", "ROUGE Score"],
+            data=to_table_rows(bottom5)
+        ))
+
+        current.card.append(Markdown("### 🔺 Top 5 ROUGE Scores"))
+        current.card.append(Table(
+            headers=["Title", "Core Summary", "ROUGE Score"],
+            data=to_table_rows(top5)
+        ))
+
+        flow.report["rouge_top_bottom"] = {
+            "top_5": top5.to_dict(orient="records"),
+            "bottom_5": bottom5.to_dict(orient="records")
+        }
+    else:
+        current.card.append(Markdown("_Missing columns: `title`, `core_line_summary_added`, or `title_vs_core_rouge_eval` for summary scoring._"))
+
+    # --- Tags/Clusters Section ---
+    current.card.append(Markdown("## 🏷️ Tags / Clusters Summary"))
+
+    if "tags_pred_added" in df.columns and "clusters_names_in_order_added" in df.columns:
+        tags_per_article = []
+        clusters_per_article = []
+        all_clusters = set()
+
+        for i, row in df.iterrows():
+            is_ai = row.get("is_ai_added", [])
+            if is_ai == False:
                 continue
-            
-            current.card.append(Markdown(f"### Step: `{step_name}`"))
-            
-            error_table = [["Index", "Article ID", "Error Message"]]
-            for err in errors_list:
-                error_table.append([
-                    err.get("index", "N/A"),
-                    err.get("article_id", "N/A"),
-                    err.get("error_message", "N/A")
-                ])
-            
-            current.card.append(Table(error_table))
+            tags = row.get("tags_pred_added", [])
+            clusters = row.get("clusters_names_in_order_added", [])
+
+            # Clean and count
+            if not isinstance(tags, list):
+                tags = []
+            if not isinstance(clusters, list):
+                clusters = []
+
+            tags = [t for t in tags if isinstance(t, str)]
+            clusters = [c for c in clusters if isinstance(c, str)]
+
+            tags_per_article.append(len(tags))
+            clusters_per_article.append(len(set(clusters)))
+            all_clusters.update(clusters)
+
+        total_tags = sum(tags_per_article)
+        total_clusters = len(all_clusters)
+        avg_tags_per_article = np.mean(tags_per_article) if tags_per_article else 0
+        avg_clusters_per_article = np.mean(clusters_per_article) if clusters_per_article else 0
+
+        md = f"""
+**Total Tags (across all articles)**: {total_tags}  
+**Total Clusters (distinct)**: {total_clusters}  
+**Avg Tags per Article**: {avg_tags_per_article:.2f}  
+**Avg Clusters per Article**: {avg_clusters_per_article:.2f}
+"""
+        current.card.append(Markdown(md))
+
+        flow.report["tag_cluster_summary"] = {
+            "total_tags": total_tags,
+            "total_clusters": total_clusters,
+            "avg_tags_per_article": avg_tags_per_article,
+            "avg_clusters_per_article": avg_clusters_per_article
+        }
+    else:
+        current.card.append(Markdown("_Missing `tags_pred_added` or `clusters_names_in_order_added` column to compute tags/clusters summary._"))
+
+    # --- Tag Similarity Evaluation Analysis ---
+    current.card.append(Markdown("### 🧪 Tag Similarity Evaluation"))
+
+    if "tag_similarity_eval" in df.columns:
+        similarity_scores = df["tag_similarity_eval"].dropna()
+
+        # Plot distribution
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.hist(similarity_scores, bins=20, color='mediumpurple', edgecolor='black')
+        ax.set_title("Distribution of tag_similarity_eval")
+        ax.set_xlabel("tag_similarity_eval")
+        ax.set_ylabel("Number of Articles")
+
+        sim_plot_path = save_plot(fig, "tag_similarity_distribution")
+        current.card.append(load_image(sim_plot_path))
+
+        # Top 5 and Bottom 5
+        sorted_df = df.dropna(subset=["tag_similarity_eval"]).sort_values("tag_similarity_eval", ascending=False)
+
+        top_5 = sorted_df.head(5)
+        bottom_5 = sorted_df.tail(5)
+
+        def format_row(row):
+            return [
+                row.get("title", "N/A"),
+                ", ".join(row.get("tags", [])) if isinstance(row.get("tags"), list) else "N/A",
+                ", ".join(row.get("tags_pred_added", [])) if isinstance(row.get("tags_pred_added"), list) else "N/A",
+                f"{row.get('tag_similarity_eval', 0):.3f}"
+            ]
+
+        current.card.append(Markdown("#### 🔝 Top 5 Articles by Tag Similarity"))
+        current.card.append(Table(
+            headers=["Title", "Tags", "Predicted Tags", "Similarity"],
+            data=[format_row(row) for _, row in top_5.iterrows()]
+        ))
+
+        current.card.append(Markdown("#### 🔻 Bottom 5 Articles by Tag Similarity"))
+        current.card.append(Table(
+            headers=["Title", "Tags", "Predicted Tags", "Similarity"],
+            data=[format_row(row) for _, row in bottom_5.iterrows()]
+        ))
+
+        # Optionally store to report
+        flow.report["tag_similarity_eval_distribution"] = similarity_scores.describe().to_dict()
+        flow.report["top_tag_similarity_articles"] = top_5.to_dict(orient="records")
+        flow.report["bottom_tag_similarity_articles"] = bottom_5.to_dict(orient="records")
+    else:
+        current.card.append(Markdown("_No `tag_similarity_eval` column found for similarity evaluation analysis._"))
+
+    if "clusters_names_in_order_added" in df.columns:
+        current.card.append(Markdown("### 🧩 Top 20 Clusters Histogram"))
+
+        # Flatten all cluster lists into one big list
+        all_clusters = []
+        for cluster_list in df["clusters_names_in_order_added"].dropna():
+            if isinstance(cluster_list, list):
+                all_clusters.extend(cluster_list)
+
+        cluster_counts = Counter(all_clusters)
+        top_20 = cluster_counts.most_common(20)
+
+        if top_20:
+            clusters, counts = zip(*top_20)
+
+            fig, ax = plt.subplots(figsize=(12, 6))
+            ax.bar(clusters, counts, color='skyblue', edgecolor='black')
+            ax.set_title("Top 20 Clusters in Articles")
+            ax.set_ylabel("Count")
+            ax.set_xticks(range(len(clusters)))
+            ax.set_xticklabels(clusters, rotation=45, ha='right')
+
+            cluster_plot_path = save_plot(fig, "top_20_clusters")
+            current.card.append(load_image(cluster_plot_path))
+
+            # Optional: Save to flow report
+            flow.report["top_20_clusters"] = dict(top_20)
+        else:
+            current.card.append(Markdown("_No cluster data found to display._"))
+
+    else:
+        current.card.append(Markdown("_Missing `clusters_names_in_order_added` column for cluster histogram._"))
+    
+    flow.replicated_articles_df = df

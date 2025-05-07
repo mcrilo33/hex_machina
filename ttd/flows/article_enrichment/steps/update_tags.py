@@ -24,7 +24,7 @@ def _filter_already_tagged_articles(merge_tag, already_tagged_ids):
 def execute(flow):
     """Save or update tags in the database."""
     logger.info("Saving merged tags to database...")
-    step_name = "save_tags"
+    step_name = "update_tags"
     model_spec_name = "update_tags_db"
     start_time = time.time()
     flow.metrics.setdefault("step_start_times", {})[step_name] = start_time
@@ -52,26 +52,30 @@ def execute(flow):
             pred_start_time = time.time()
             tag_records = storage.search("tags", TagWord.name == pred["output"])
             logger.info(f"✅ Update {idx+1}/{len(data)} ")
+            flow.metrics["models_io"][model_spec_name]["inputs"].append(pred)
             logger.info(f"✅ Inputs:")
             logger.info(safe_pretty_print(pred))
             if tag_records:
                 tag = tag_records[0]
                 tag["history"] += pred["history"]
-                logger.debug(f"✅ Updating existing tag: {tag['name']}")
-            else:
+                ids = storage.update("tags", tag)
+                tags.append(tag)
+                logger.info(f"✅ Updating existing tag: {tag['name']}")
+            elif len(pred["history"]) > 0:
                 tag = {
                     "table_name": "tags",
                     "name": pred["output"],
                     "history": pred["history"]
                 }
-                logger.debug(f"✅ Creating new tag: {tag['name']}")
+                ids = storage.save("tags", tag)
+                tag["doc_id"] = ids[0]
+                tags.append(tag)
+                logger.info(f"✅ Creating new tag: {tag['name']}")
 
-            ids = storage.save_or_update("tags", tag)
-            tag["doc_id"] = ids[0]
-            tags.append(tag)
             pred_duration = time.time() - pred_start_time
             flow.metrics["models_io"][model_spec_name]["outputs"].append({
-                "duration": pred_duration
+                "output": tag,
+                "metadata": {"duration": pred_duration}
             })
         except Exception as e:
             logger.error(f"❌ Error in {step_name} at article {idx}: {str(e)}")

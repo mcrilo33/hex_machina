@@ -48,7 +48,7 @@ def execute(flow):
 
     storage = TTDStorage(flow.config.get("db_path"))
 
-    articles = _load_query(storage, flow.articles_table, flow.date_threshold,
+    articles = _load_query(storage, flow.articles_table, flow.parsed_date_threshold,
                            flow.articles_limit)
 
     logger.info("✅ Filtering out already replicated articles...")

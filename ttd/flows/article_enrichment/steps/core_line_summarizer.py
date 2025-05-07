@@ -23,8 +23,7 @@ def execute(flow):
 
     dense_summaries = flow.metrics["models_io"]["dense_summarizer_spec"]["outputs"]
     for idx, dense_summary in enumerate(dense_summaries):
-        # TODO REMOVE TRUE
-        if True or dense_summary: 
+        if dense_summary: 
             inputs, outputs, errors = predict(model_spec_name, [dense_summary])
             flow.metrics["models_io"][model_spec_name]["inputs"] += inputs
             flow.metrics["models_io"][model_spec_name]["outputs"] += outputs

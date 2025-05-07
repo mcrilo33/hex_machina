@@ -22,8 +22,8 @@ def execute(flow):
     }
 
     for idx, article in enumerate(flow.articles):
-        # TODO REMOVE TRUE
-        if True or flow.metrics["models_io"]["article_is_ai_classifier_spec"]["outputs"][idx]["output"]:
+        is_ai = flow.metrics["models_io"]["article_is_ai_classifier_spec"]["outputs"][idx]
+        if is_ai is not None and is_ai["output"]:
             inputs, outputs, errors = predict(model_spec_name, [article])
             flow.metrics["models_io"][model_spec_name]["inputs"] += inputs
             outputs[0]["doc_id"] = flow.articles[idx]["doc_id"]

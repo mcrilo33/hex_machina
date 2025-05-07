@@ -66,12 +66,12 @@ class ArticleEnrichmentFlow(FlowSpec):
     def load_articles(self):
         """Load articles published after a date threshold."""
         load_articles_step(self)
-        if len(flow.articles) == 0:
+        if len(self.articles) == 0:
             self.log.warning("No articles to process.")
             self.log.warning("Exiting flow.")
             self.next(self.end)
-        else:
-            self.next(self.is_ai_articles)
+            return
+        self.next(self.is_ai_articles)
 
     @step
     def is_ai_articles(self):
@@ -119,13 +119,13 @@ class ArticleEnrichmentFlow(FlowSpec):
     def replicate_articles(self):
         """Replicate articles with enriched data."""
         replicate_articles_step(self)
-        self.next(self.score_articles)
-
-    @step
-    def score_articles(self):
-        """Score articles based on clusters frequency and order."""
-        score_articles_step(self)
         self.next(self.prepare_report)
+
+    #@step
+    #def score_articles(self):
+    #    """Score articles based on clusters frequency and order."""
+    #    score_articles_step(self)
+    #    self.next(self.prepare_report)
 
     @step
     def prepare_report(self):

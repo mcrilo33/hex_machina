@@ -10,21 +10,21 @@ logger = logging.getLogger(__name__)
 
 def _clean_up_tables(storage, flow):
     """ Clean up tables for a fresh run. """
-    if not flow.keep_replicates:
+    if flow.clean_tables:
         storage.db.drop_table("tags")
         storage.db.drop_table("tag_clusters")
-        # TODO REMOVE COMMENT
-        #storage.db.drop_table(flow.replicates_table)
+        storage.db.drop_table("tagged_articles")
+        storage.db.drop_table(flow.replicates_table)
         logger.info("✅ Database cleaned.")
     else:
-        logger.info("✅ Database not cleaned, keeping replicates.")
+        logger.info("✅ Database not cleaned.")
 
 def execute(flow):
     """ Initialize the pipeline, storage and metrics. """
     # Initialize storage
     flow.config = load_config()
     flow.git_metadata = get_git_metadata()
-    flow.date_threshold = parse_date(flow.date_threshold)
+    flow.parsed_date_threshold = parse_date(flow.date_threshold)
     storage = TTDStorage(flow.config.get("db_path"))
     logger.info("✅ Database first connection established.")
     _clean_up_tables(storage, flow)

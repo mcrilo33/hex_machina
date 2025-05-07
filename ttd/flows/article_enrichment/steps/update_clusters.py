@@ -57,6 +57,7 @@ def _assign_cluster_to(tag, storage, embedding_model):
     for cluster in tag_cluster_table:
         if _tag_is_similar_to(tag, cluster, embedding_model):
             tag["tag_cluster_id"] = str(cluster.doc_id)
+            cluster["doc_id"] = str(cluster.doc_id)
             cluster["tag_synonyms"][tag["doc_id"]] = tag["name"]
             return {"tag": tag, "cluster": _update_cluster(cluster, storage)}
 
@@ -69,14 +70,16 @@ def _assign_cluster_to(tag, storage, embedding_model):
         }
     }
     tag_cluster_id = storage.save("tag_clusters", new_cluster)[0]
+    new_cluster["doc_id"] = tag_cluster_id
     tag["tag_cluster_id"] = tag_cluster_id
-    return {"tag": tag}
+    return {"tag": tag, "cluster": new_cluster}
 
 
 def _transform_cluster(tag, storage, embedding_model):
     if "tag_cluster_id" in tag:
         tag_cluster_table = storage.get_table("tag_clusters")
         cluster = tag_cluster_table.get(doc_id=int(tag["tag_cluster_id"]))
+        cluster["doc_id"] = str(cluster.doc_id)
         output = {"cluster": _update_cluster(cluster, storage)}
     else:
         output = _assign_cluster_to(tag, storage, embedding_model)
@@ -84,16 +87,14 @@ def _transform_cluster(tag, storage, embedding_model):
     for _, v in output.items():
         if isinstance(v, dict) and "doc_id" in v:
             storage.update(v["table_name"], v)
-        else:
-            storage.save(v["table_name"], v)
     return output
 
 
 def execute(flow):
     """Cluster similar tags based on embeddings."""
     logger.info("Clustering tags...")
-    step_name = "cluster_tags"
-    model_spec_name = "tag_embedding_spec"
+    step_name = "update_tag_clusters"
+    model_spec_name = "update_tag_clusters_db"
     start_time = time.time()
     flow.metrics.setdefault("step_start_times", {})[step_name] = start_time
     flow.metrics.setdefault("models_spec_names", {})[step_name] = model_spec_name
@@ -103,30 +104,33 @@ def execute(flow):
         "errors": []
     }
     storage = TTDStorage(flow.config.get("db_path"))
-    tag_embedding_spec = load_model_spec(model_spec_name)
+    tag_embedding_spec = load_model_spec("tag_embedding_spec")
 
-    clusters = []
+    clusters = {}
     data = flow.tags
     for idx, tag in enumerate(data):
         pred_start_time = time.time()
         logger.info(f"✅ Update {idx+1}/{len(data)} ")
         flow.metrics["models_io"][model_spec_name]["inputs"].append(tag)
         try:
-            pred_success = True
             output = _transform_cluster(tag, storage, tag_embedding_spec._loaded_model)
         except Exception as e:
             logger.error(f"❌ Error on tag {idx}: {str(e)}")
             flow.metrics["models_io"][model_spec_name]["errors"].append({
                 "index": idx,
                 "error_message": str(e),
-                "tag_id": tag.get("doc_id", None)
+                "tag_id": tag["doc_id"]
             })
-        if pred_success:
+        else:
             pred_duration = time.time() - pred_start_time
-            output["duration"] = pred_duration
+            flow.metrics["models_io"][model_spec_name]["outputs"].append({
+                "output": tag,
+                "metadata": {"duration": pred_duration}
+            })
 
         if output and "cluster" in output:
-            clusters.append(output["cluster"])
+            cluster = output["cluster"]
+            clusters[cluster["doc_id"]] = cluster
 
     flow.clusters = clusters
     total_time = time.time() - start_time

@@ -26,6 +26,8 @@ def execute(flow):
     data = flow.metrics["models_io"]["tagger_spec"]["outputs"]
     count_tags = 0
     for idx, tags_pred in enumerate(data):
+        if tags_pred is None:
+            continue
         tags_pred = tags_pred["output"]
         try:
             pred_start_time = time.time()
