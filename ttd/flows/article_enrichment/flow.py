@@ -121,12 +121,6 @@ class ArticleEnrichmentFlow(FlowSpec):
         replicate_articles_step(self)
         self.next(self.prepare_report)
 
-    #@step
-    #def score_articles(self):
-    #    """Score articles based on clusters frequency and order."""
-    #    score_articles_step(self)
-    #    self.next(self.prepare_report)
-
     @step
     def prepare_report(self):
         """Prepare a report with metrics and statistics."""

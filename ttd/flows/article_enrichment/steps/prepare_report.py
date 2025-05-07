@@ -42,6 +42,25 @@ def load_image(path: str) -> Image:
     with open(path, "rb") as f:
         return Image(f.read())
 
+
+def extract_errors_dataframe(metrics: dict) -> pd.DataFrame:
+    rows = []
+
+    models_io = metrics.get("models_io", {})
+
+    for model_key, model_data in models_io.items():
+        errors = model_data.get("errors", [])
+        for error in errors:
+            if isinstance(error, dict):
+                row = {"model_key": model_key}
+                row.update(error)  # Flatten error dict into row
+                rows.append(row)
+            else:
+                # Fallback in case error is a string or other structure
+                rows.append({"model_key": model_key, "error": error})
+
+    return pd.DataFrame(rows)
+
 logger = logging.getLogger(__name__)
 
 @card(type='default')
@@ -489,5 +508,34 @@ def execute(flow) -> None:
 
     else:
         current.card.append(Markdown("_Missing `clusters_names_in_order_added` column for cluster histogram._"))
-    
+
+    # --- Model Errors Section ---
+    current.card.append(Markdown("## ❌ Model Errors"))
+
+    def extract_errors_dataframe(metrics: dict) -> pd.DataFrame:
+        rows = []
+        models_io = metrics.get("models_io", {})
+        for model_key, model_data in models_io.items():
+            errors = model_data.get("errors", [])
+            for error in errors:
+                if isinstance(error, dict):
+                    row = {"model_key": model_key}
+                    row.update(error)
+                    rows.append(row)
+                else:
+                    rows.append({"model_key": model_key, "error": str(error)})
+        return pd.DataFrame(rows)
+
+    error_df = extract_errors_dataframe(flow.metrics)
+
+    if not error_df.empty:
+        # Add to card (full text in cells)
+        current.card.append(Markdown("### 🔎 Full Error Log (per model)"))
+        current.card.append(Table(
+            headers=error_df.columns.tolist(),
+            data=error_df.values.tolist()
+        ))
+        flow.report["model_errors"] = error_df.to_dict(orient="records")
+    else:
+        current.card.append(Markdown("_No model errors were recorded in this flow run._"))
     flow.replicated_articles_df = df

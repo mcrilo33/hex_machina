@@ -31,6 +31,3 @@ def execute(flow):
     
     # Initialize metrics dictionary
     flow.metrics = {}
-    flow.errors = {}
-    flow.prediction_times = {}
-    flow.token_usage = {}
