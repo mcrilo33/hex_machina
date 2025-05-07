@@ -41,11 +41,12 @@ Your task is to extract a **clean, concise list of tags** from a dense summary o
 Your output must follow these rules:
 
 - Tags must represent the **core themes or subjects** of the article — only include tags for concepts that are essential to its message.
-- Tags must be **useful for grouping** articles that share similar topics — don't be overly specific.
+- Tags must be **useful for grouping** articles by shared topics — do not be overly specific.
 - Tags must be **mutually distinct**:
-    - **Avoid duplicates**: Do not include synonyms or overlapping terms (e.g., "LLMs" and "large language models" — keep only one).
-    - If two tags represent the same idea, pick the **most general and recognizable** form.
-    - Prefer normalized, standardized wording when possible (e.g., use “AI safety” instead of “safety in artificial intelligence”).
+    - Do **not include synonyms, variants, or abbreviations of other tags** already listed (e.g., "LLMs" and "large language models" — choose only one).
+    - When multiple forms of a concept exist, **always prefer the full descriptive form** (e.g., "large language models" instead of "LLMs").
+    - Use **standardized, recognizable terminology**.
+- Do **not include duplicates**, partial matches, or overlapping phrases.
 
 You will be provided with:
 - A dense summary of the article
@@ -58,8 +59,9 @@ DENSE SUMMARY:
 ---
 
 Return a **comma-separated list** of clean, distinct tags.
-Example: `LLMs,generative AI,AI ethics,medical imaging`
-Do **not** include duplicates, synonyms, or very similar tags.
+Example: `large language models,generative AI,AI ethics,medical imaging`
+
+Do **not** include duplicates, synonyms, or near-duplicates.
 Do **not** add quotes, explanations, or formatting — just return the list.
 """
 )
