@@ -23,7 +23,7 @@ def predict(model_spec_name, data):
         logger.info(f"✅ Predict {idx+1}/{len(data)} ")
         logger.info(f"✅ Inputs:")
         logger.info(safe_pretty_print(validated_input))
-        # TODO CHANGE THIS LINE
+        # TODO CHANGE THIS LINE BUT WORKS FOR NOW
         # model_inputs.append(validated_input)
         model_inputs.append({"article_id": input["doc_id"]})
         pred_start_time = time.time()
