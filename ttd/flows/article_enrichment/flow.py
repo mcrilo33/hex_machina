@@ -11,7 +11,6 @@ from ttd.flows.article_enrichment.steps.dense_summarizer \
 from ttd.flows.article_enrichment.steps.core_line_summarizer \
     import execute as core_line_summarizer_step
 from ttd.flows.article_enrichment.steps.tagger import execute as tagger_step
-from ttd.flows.article_enrichment.steps.end import execute as end_step
 from ttd.flows.article_enrichment.steps.merge_same_tags \
     import execute as merge_same_tags_step
 from ttd.flows.article_enrichment.steps.update_tags import execute as update_tags_step
@@ -21,8 +20,7 @@ from ttd.flows.article_enrichment.steps.replicate_articles \
     import execute as replicate_articles_step
 from ttd.flows.article_enrichment.steps.prepare_report \
     import execute as prepare_report_step
-from ttd.flows.article_enrichment.steps.score_articles \
-    import execute as score_articles_step
+from ttd.flows.article_enrichment.steps.end import execute as end_step
 
 
 class ArticleEnrichmentFlow(FlowSpec):
