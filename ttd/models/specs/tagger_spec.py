@@ -35,18 +35,23 @@ TAGGER_PROMPT = PromptTemplateSpec(
     template="""
 You are a professional AI content classifier.
 
-Your task is to extract a **clean, concise list of tags** from a dense summary of an article. These tags will be used to group related articles.
-**Order the tags** by importance (most important first).
+Your task is to extract a **clean, concise list of tags** from a dense summary of an article.
+These tags will be used to group related articles in a knowledge graph and recommendation system.
+
+**Order the tags** by relevance and generality:
+1. Start with the tags that best represent the article's main theme.
+2. Between same relevance tags, prefer the most general ones first.
 
 Your output must follow these rules:
 
-- Tags must represent the **core themes or subjects** of the article — only include tags for concepts that are essential to its message.
-- Tags must be **useful for grouping** articles by shared topics — do not be overly specific.
+- Tags must represent the **core themes or subjects** of the article — only include tags essential to its message.
+- Tags must be **useful for grouping** articles by shared topics - avoid overly specific tags.
 - Tags must be **mutually distinct**:
-    - Do **not include synonyms, variants, or abbreviations of other tags** already listed (e.g., "LLMs" and "large language models" — choose only one).
+    - Do **not include synonyms, variants, or abbreviations of other tags** already listed (e.g., "large language models" and "LLMs" — choose only one).
     - When multiple forms of a concept exist, **always prefer the full descriptive form** (e.g., "large language models" instead of "LLMs").
     - Use **standardized, recognizable terminology**.
 - Do **not include duplicates**, partial matches, or overlapping phrases.
+- Keep the list between 3 and 7 tags, unless the content clearly demands more.
 
 You will be provided with:
 - A dense summary of the article
