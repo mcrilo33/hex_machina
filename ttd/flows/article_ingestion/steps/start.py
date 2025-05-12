@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 def _clean_up_tables(storage, flow):
     """ Clean up tables for a fresh run. """
     if flow.clean_tables:
-        storage.db.drop_table("selections")
-        storage.db.drop_table("selected_articles")
+        storage.db.drop_table(flow.articles_table)
         logger.info("✅ Database cleaned.")
     else:
         logger.info("✅ Database not cleaned.")
@@ -21,11 +20,12 @@ def execute(flow):
     """ Initialize the pipeline, storage and metrics. """
     # Initialize storage
     flow.config = load_config()
+    with open(flow.config["feeds_path"], "r") as f:
+        flow.rss_feeds = [line.strip() for line in f if line.strip()]
+    with open(flow.config["feeds_stealth_path"], "r") as f:
+        flow.rss_stealth_feeds = [line.strip() for line in f if line.strip()]
     flow.git_metadata = get_git_metadata()
     flow.parsed_date_threshold = parse_date(flow.date_threshold)
-    flow.parsed_cluster_date_threshold = parse_date(flow.cluster_date_threshold)
-    flow.min_parsed_date_threshold = min(flow.parsed_date_threshold,
-                                         flow.parsed_cluster_date_threshold)
     storage = TTDStorage(flow.config.get("db_path"))
     logger.info("✅ Database first connection established.")
     _clean_up_tables(storage, flow)
@@ -33,3 +33,8 @@ def execute(flow):
     # Initialize metrics dictionary
     flow.metrics = {}
     flow.errors = {}
+    articles = storage.get_all(flow.articles_table)
+    if len(articles) == 0:
+        flow.first_id = 0
+    else:
+        flow.first_id = max([int(doc.get("doc_id")) for doc in articles])

@@ -1,14 +1,19 @@
 import time
 import feedparser
+import re
+import logging
 import scrapy
 from scrapy.exceptions import CloseSpider
 from scrapy_playwright.page import PageMethod
+from typing import Tuple, Optional
 from .base_article import BaseArticleScraper
 from .parser import extract_domain, extract_markdown_from_html, clean_markdown
 
 from playwright.sync_api import sync_playwright
 from playwright_stealth import stealth_sync
 
+
+logger = logging.getLogger(__name__)
 
 def parse_article(entry: dict) -> dict:
     """
@@ -26,10 +31,25 @@ def parse_article(entry: dict) -> dict:
             if "tags" in entry else [],
     }
 
+def extract_error_status_and_url(message: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Extracts the error status and URL from a browser error message.
+    
+    Example input:
+        'Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://www.example.com/page'
+
+    Returns:
+        (status, url) — or (None, None) if not found
+    """
+    status_match = re.search(r"net::([A-Z0-9_]+)", message)
+    url_match = re.search(r"at (https?://[^\s\"']+)", message)
+
+    status = status_match.group(1) if status_match else None
+    url = url_match.group(1) if url_match else None
+    return status, url
 
 def extract_article(self, entry: dict) -> dict:
     assert "html_content" in entry
-    start_time = time.time()
     entry["text_content"] = extract_markdown_from_html(entry["html_content"])
     entry["html_content_length"] = len(entry["html_content"])
     entry["text_content_length"] = len(entry["text_content"])
@@ -37,11 +57,9 @@ def extract_article(self, entry: dict) -> dict:
     entry["summary_length"] = len(entry["summary"])
     entry["summary_text_ratio"] = \
         entry["summary_length"]/entry["text_content_length"]
-    elapsed_time = time.time() - start_time
-    entry["execution_time"] = int(elapsed_time)
     if entry["summary_text_ratio"] > 1.1:
         ratio = entry['summary_text_ratio']
-        self.logger.warning(f"Weird Summary/Text ratio {ratio}")
+        logger.warning(f"Weird Summary/Text ratio {ratio}")
     return entry
 
 
@@ -52,34 +70,34 @@ class StealthRSSArticleScraper(BaseArticleScraper):
     """
 
     name = "rss_article_scraper"
-    parse_count = 0
 
     def start_requests(self):
-        from ttd.utils.config import load_config
-        config = load_config()
-        DEBUG = config["debug"]
         for feed_url in self.start_urls:
             feed = feedparser.parse(feed_url)
 
-            for entry in feed.entries:
+            for idx, entry in enumerate(feed.entries):
+                start_time = time.time()
                 normalized = self.parse_article(entry)
 
                 if self.should_skip_entry(normalized):
-                    break  # stop if entry is too old
+                    break
 
                 article_url = normalized.get("url")
                 if article_url:
-                    html = self.fetch_with_undetected_playwright(article_url)
+                    html,error = self.fetch_with_undetected_playwright(article_url)
                     if html:
-                        self.parse_count += 1
-                        if DEBUG and self.parse_count > 2:
-                            raise CloseSpider(
-                                "DEBUG MODE : " +
-                                "Reached 2 calls to parse; stopping spider."
-                            )
                         normalized["html_content"] = html
                         normalized = extract_article(self, normalized)
-                        self.store([normalized])
+                    elapsed_time = time.time() - start_time
+                    normalized["metadata"] = {
+                        "error": error,
+                        "duration": int(elapsed_time)
+                    }
+                    self.store([normalized])
+                    self.stored_count += 1
+
+            if self.limit_is_reached():
+                break
         return iter([])
 
     def fetch_with_undetected_playwright(self, url: str) -> str:
@@ -101,10 +119,14 @@ class StealthRSSArticleScraper(BaseArticleScraper):
                 page.wait_for_timeout(3000)  # wait for JS to render
                 html = page.content()
                 browser.close()
-                return html
+                return html,None
         except Exception as e:
-            self.logger.warning(f"Undetected Playwright failed for {url}: {e}")
-            return None
+            logger.warning(f"Undetected Playwright failed for {url}: {e}")
+            status, url = extract_error_status_and_url(str(e))
+            return None, {
+                "status": status,
+                "url": url
+            }
 
     def parse(self, response):
         pass  # unused now, handled in start_requests
@@ -120,7 +142,6 @@ class RSSArticleScraper(BaseArticleScraper):
     """
 
     name = "rss_article_scraper"
-    parse_count = 0
     custom_settings = {
         "CONCURRENT_REQUESTS": 2,
         "DOWNLOAD_DELAY": 3,
@@ -147,13 +168,15 @@ class RSSArticleScraper(BaseArticleScraper):
         for feed_url in self.start_urls:
             feed = feedparser.parse(feed_url)
 
-            for entry in feed.entries:
+            for idx, entry in enumerate(feed.entries):
+                self.start_time = time.time()
                 normalized = self.parse_article(entry)
 
                 if self.should_skip_entry(normalized):
-                    break  # stop if entry is too old
+                    break
 
                 article_url = normalized.get("url")
+                self.normalized = normalized
                 if article_url:
                     yield scrapy.Request(
                         url=article_url,
@@ -173,32 +196,45 @@ class RSSArticleScraper(BaseArticleScraper):
                             ]
                         }
                     )
+            if self.limit_is_reached():
+                break
 
     def handle_error(self, failure):
-        self.logger.warning(
-            f"Request failed: {failure.request.url} | Reason: {failure.value}"
-        )
+        error_msg = {
+            "status": failure.response.status,
+            "url": failure.response.url
+        }
+        logger.warning(error_msg)
+        elapsed_time = time.time() - self.start_time
+        self.normalized["metadata"] = {
+            "error": error_msg,
+            "duration": int(elapsed_time)
+        }
+        self.store(self.normalized)
+        self.stored_count += 1
 
     def parse(self, response):
         """
         Called for each full article page.
         You can enrich the original RSS data with full HTML content here.
         """
-        from ttd.utils.config import load_config
 
         if response.status != 200:
-            self.logger.warning(f"Non-200 status {response.status} for {response.url}")
-            return
-        config = load_config()
-        DEBUG = config["debug"]
-        self.parse_count += 1
-        if DEBUG and self.parse_count > 2:
-            raise CloseSpider("DEBUG MODE : Reached 2 call to parse; stopping spider.")
+            from twisted.internet.defer import TimeoutError
+            failure = scrapy.spidermiddlewares.httperror.HttpError(response)
+            return self.handle_error(failure)
 
         rss_data = response.meta.get("rss_data", {})
-        rss_data["html_content"] = response.text
-        rss_data = extract_article(self, rss_data)
+        rss_data["html_content"] = response.text if not response.text=='' else None
+        if rss_data["html_content"] is not None:
+            rss_data = extract_article(self, rss_data)
+        elapsed_time = time.time() - self.start_time
+        rss_data["metadata"] = {
+            "error": None,
+            "duration": int(elapsed_time)
+        }
         self.store([rss_data])
+        self.stored_count += 1
 
     def parse_article(self, response):
         return parse_article(response)

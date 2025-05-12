@@ -1,8 +1,12 @@
+import scrapy
+import logging
 from datetime import datetime
+from dateutil.parser import parse as parse_date
 from abc import ABC, abstractmethod
 from typing import List
-import scrapy
 
+
+logger = logging.getLogger(__name__)
 
 class BaseArticleScraper(scrapy.Spider, ABC):
     """
@@ -13,24 +17,39 @@ class BaseArticleScraper(scrapy.Spider, ABC):
     def __init__(
         self,
         start_urls: List[str],
-        storage_service,
-        last_date=None,
+        storage,
+        articles_table="articles",
+        articles_limit=None,
+        date_threshold=None,
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.start_urls = start_urls
-        self.storage_service = storage_service
-
-        if last_date is not None and not isinstance(last_date, datetime):
-            raise TypeError("last_date must be a datetime.datetime instance or None")
-        self.last_date = last_date  # Optional[datetime]
+        self.storage = storage
+        self.stored_count = 0
+        self.articles_table = articles_table
+        self.articles_limit = articles_limit
+        self.date_threshold = date_threshold
+        self.parsed_date_threshold = parse_date(date_threshold) if date_threshold else None
 
     def should_skip_entry(self, entry: dict) -> bool:
-        """
-        Return True if the entry is older than self.last_date.
-        """
-        if not self.last_date:
+        """ Return True if the entry should be skipped. """
+    
+        return (
+            self.limit_is_reached() or
+            self.too_old_entry(entry)
+        )
+        
+    def limit_is_reached(self) -> bool:
+        if self.articles_limit is not None and self.stored_count >= self.articles_limit:
+            return True
+        else:
+            return False
+
+    def too_old_entry(self, entry: dict) -> bool:
+        """ Return True if the entry is older than self.last_date. """
+        if not self.date_threshold:
             return False
 
         published_str = entry.get("published_date")
@@ -38,9 +57,11 @@ class BaseArticleScraper(scrapy.Spider, ABC):
             return False
 
         try:
-            published_dt = datetime.strptime(published_str, "%Y-%m-%d")
-            return published_dt < self.last_date
-        except Exception:
+            return parse_date(published_str) < self.parsed_date_threshold
+        except Exception as e:
+            logger.warning(
+                f"Failed to parse published date {published_str}: {e}"
+            )
             return False
 
     @abstractmethod
@@ -59,8 +80,8 @@ class BaseArticleScraper(scrapy.Spider, ABC):
         """
         pass
 
-    def store(self, articles: List[dict]) -> None:
+    def store(self, articles: List[dict]):
         """
-        Store article data using the provided storage service.
+        Store the parsed articles in the database.
         """
-        self.storage_service.save_articles(articles)
+        return self.storage.save(self.articles_table, articles)
