@@ -15,6 +15,23 @@ from io import BytesIO
 from metaflow.cards import Markdown, Image
 from email.utils import parsedate_to_datetime
 
+def generate_status_color_map(statuses):
+    """
+    Map statuses to colors: "No Error" gets lightgreen, others get unique pastel colors.
+    """
+    pastel_palette = [
+        "lightcoral", "skyblue", "plum", "khaki", "salmon",
+        "lightsalmon", "palegoldenrod", "lightsteelblue", "thistle"
+    ]
+
+    color_map = {}
+    print("statuses", statuses)
+    for i, status in enumerate(statuses):
+        if status == "No Error":
+            color_map[status] = "lightgreen"
+        else:
+            color_map[status] = pastel_palette[i % len(pastel_palette)]
+    return color_map
 
 def render_article_repartition_over_time(articles):
     current.card.append(Markdown("## 📊 Article Repartition Over Time (by Domain)"))
@@ -44,9 +61,12 @@ def render_article_repartition_over_time(articles):
     # Pivot table: rows = date, columns = domain, values = counts
     grouped = df.groupby(["date", "domain"]).size().unstack(fill_value=0)
 
-    # Plot stacked bar chart
+    statuses = grouped.columns.tolist()
+    color_map = generate_status_color_map(statuses)
+    colors = [color_map[status] for status in statuses]
+
     fig, ax = plt.subplots(figsize=(12, 5))
-    grouped.plot(kind="bar", stacked=True, ax=ax, colormap="tab20")
+    grouped.plot(kind="bar", stacked=True, ax=ax, color=colors)
     ax.set_title("Articles per Day by Domain")
     ax.set_xlabel("Date")
     ax.set_ylabel("Number of Articles")
@@ -60,7 +80,7 @@ def render_article_repartition_over_time(articles):
     current.card.append(Image(buf.read()))
 
 def render_error_distribution_by_domain_and_status(articles):
-    current.card.append(Markdown("## Error Distribution by Domain and Status"))
+    current.card.append(Markdown("## ❗ Error Distribution by Domain and Status"))
 
     if not articles:
         current.card.append(Markdown("_No articles available._"))
@@ -74,7 +94,7 @@ def render_error_distribution_by_domain_and_status(articles):
         if error:
             records.append({"domain": article["url_domain"], "status": error["status"]})
         else:
-            records.append({"domain": article["url_domain"], "status": "OK"})
+            records.append({"domain": article["url_domain"], "status": "No Error"})
 
     if not records:
         current.card.append(Markdown("_No error records with status found._"))
@@ -86,10 +106,14 @@ def render_error_distribution_by_domain_and_status(articles):
     # Group by domain and status
     grouped = df.groupby(["domain", "status"]).size().unstack(fill_value=0)
 
+    statuses = grouped.columns.tolist()
+    color_map = generate_status_color_map(statuses)
+    colors = [color_map[status] for status in statuses]
+
     # Plot stacked bar chart
     fig, ax = plt.subplots(figsize=(12, 6))
-    grouped.plot(kind="bar", stacked=True, ax=ax, colormap="tab20")
-    ax.set_title("❗ Errors by Domain and Status")
+    grouped.plot(kind="bar", stacked=True, ax=ax, color=colors)
+    ax.set_title("Errors by Domain and Status")
     ax.set_xlabel("URL Domain")
     ax.set_ylabel("Number of Errors")
     plt.xticks(rotation=45)
