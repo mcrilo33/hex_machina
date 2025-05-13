@@ -22,3 +22,4 @@ rouge-score
 absl-py
 bert_score
 metaflow
+pillow
