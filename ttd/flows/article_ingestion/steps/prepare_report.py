@@ -148,6 +148,14 @@ def get_articles_in_range(storage, table_name, first_id, last_id):
 
     return articles
 
+def get_articles_with_no_error(articles):
+    articles_with_no_error = []
+    for article in articles:
+        if not article.get("metadata", {}).get("error"):
+            articles_with_no_error.append(article)
+
+    return articles_with_no_error
+
 @card
 @step
 def execute(flow):
@@ -188,9 +196,6 @@ def execute(flow):
         flow.first_id,
         flow.last_id
     )
-    articles_with_no_error = []
-    for article in articles:
-        if not article.get("metadata", {}).get("error"):
-            articles_with_no_error.append(article)
+    articles_with_no_error = get_articles_with_no_error(articles)
     render_article_repartition_over_time(articles_with_no_error)
     render_error_distribution_by_domain_and_status(articles)
