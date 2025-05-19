@@ -4,6 +4,7 @@ from tinydb import Query
 from metaflow import step, card, current
 from metaflow.cards import Markdown, Table
 
+from ttd.flows.utils import get_articles_with_no_error
 from ttd.storage.ttd_storage import TTDStorage
 
 logger = logging.getLogger(__name__)
@@ -138,24 +139,6 @@ def format_duration(seconds: float) -> str:
     hrs, mins = divmod(mins, 60)
     return f"{hrs}h {mins}m {secs}s"
 
-
-def get_articles_in_range(storage, table_name, first_id, last_id):
-    """Fetch articles with ID between first_id and last_id (inclusive)."""
-    articles = storage.get_all(table_name)
-    articles = [article for article in articles if
-                int(article.get("doc_id")) > first_id and
-                int(article.get("doc_id")) <= last_id]
-
-    return articles
-
-def get_articles_with_no_error(articles):
-    articles_with_no_error = []
-    for article in articles:
-        if not article.get("metadata", {}).get("error"):
-            articles_with_no_error.append(article)
-
-    return articles_with_no_error
-
 @card
 @step
 def execute(flow):
@@ -190,8 +173,7 @@ def execute(flow):
     ))
 
     storage = TTDStorage(flow.config.get("db_path"))
-    articles = get_articles_in_range(
-        storage,
+    articles = storage.get_articles_in_range(
         flow.articles_table,
         flow.first_id,
         flow.last_id

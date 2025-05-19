@@ -111,7 +111,12 @@ class StealthRSSArticleScraper(BaseArticleScraper):
                         "Chrome/120.0.0.0 Safari/537.36"
                     ),
                     locale="en-US",
-                    timezone_id="Europe/Paris"
+                    timezone_id="Europe/Paris",
+                    viewport={"width": 1280, "height": 800},
+                    device_scale_factor=1,
+                    has_touch=False,
+                    is_mobile=False,
+                    storage_state="../../data/tmp/storage_state.json"
                 )
                 page = context.new_page()
                 stealth_sync(page)
