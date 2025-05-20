@@ -119,9 +119,13 @@ class TTDStorage(TinyDBStorageService):
                 ids.append(obj_id)
         return ids
 
-    def get_obj_in_range(self, table_name, first_id, last_id):
+    def get_obj_in_range(self, table_name, first_id=None, last_id=None):
         """Fetch objects with ID between first_id and last_id (inclusive)."""
         objs = self.get_all(table_name)
+        if first_id is None:
+            first_id = 0
+        if last_id is None:
+            last_id = len(objs)
         objs = [obj for obj in objs if
                     int(obj.get("doc_id")) > first_id and
                     int(obj.get("doc_id")) <= last_id]

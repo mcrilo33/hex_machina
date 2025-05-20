@@ -3,6 +3,7 @@ import feedparser
 import re
 import logging
 import scrapy
+from pathlib import Path
 from scrapy.exceptions import CloseSpider
 from scrapy_playwright.page import PageMethod
 from typing import Tuple, Optional
@@ -115,8 +116,7 @@ class StealthRSSArticleScraper(BaseArticleScraper):
                     viewport={"width": 1280, "height": 800},
                     device_scale_factor=1,
                     has_touch=False,
-                    is_mobile=False,
-                    storage_state="../../data/tmp/storage_state.json"
+                    is_mobile=False
                 )
                 page = context.new_page()
                 stealth_sync(page)
@@ -148,7 +148,7 @@ class RSSArticleScraper(BaseArticleScraper):
 
     name = "rss_article_scraper"
     custom_settings = {
-        "CONCURRENT_REQUESTS": 2,
+        "CONCURRENT_REQUESTS": 1, 
         "DOWNLOAD_DELAY": 3,
         "RANDOMIZE_DOWNLOAD_DELAY": True,
         "DOWNLOAD_TIMEOUT": 30,
@@ -225,7 +225,6 @@ class RSSArticleScraper(BaseArticleScraper):
         """
 
         if response.status != 200:
-            from twisted.internet.defer import TimeoutError
             failure = scrapy.spidermiddlewares.httperror.HttpError(response)
             return self.handle_error(failure)
 

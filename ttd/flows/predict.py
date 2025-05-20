@@ -1,36 +1,11 @@
-""" Utility functions for the TTD pipeline. """
+""" Predict functions for the TTD pipeline. """
 import logging
 import time
-from pathlib import Path
-from collections import Counter
 
-from ttd.ingestion.parser import extract_domain
 from ttd.utils.print import safe_pretty_print
 from ttd.models.loader import load_model_spec
 
 logger = logging.getLogger(__name__)
-
-def get_articles_with_no_error(articles):
-    articles_with_no_error = []
-    for article in articles:
-        if not article.get("metadata", {}).get("error"):
-            articles_with_no_error.append(article)
-
-    return articles_with_no_error
-
-def print_domain_matches(rss_file_path: Path, domain_counts: Counter, label: str = ""):
-    print(f"\n📄 Checking {label or rss_file_path.name}:")
-    with rss_file_path.open("r") as file:
-        for line in file:
-            url = line.strip()
-            if not url:
-                continue
-            domain = extract_domain(url)
-            count = domain_counts.get(domain, 0)
-            if count > 0:
-                print(f"[✅] Found: {domain} ({count} article(s))")
-            else:
-                print(f"[❌] Not found: {domain}")
 
 def predict(model_spec_name, data):
     """Predict using the model specified by model_spec_name."""

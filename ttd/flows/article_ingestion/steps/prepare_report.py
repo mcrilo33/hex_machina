@@ -1,84 +1,54 @@
 import logging
+import pandas as pd
+import matplotlib.pyplot as plt
+from datetime import datetime
+from pathlib import Path
+from io import BytesIO
+from metaflow.cards import Markdown, Image
 from datetime import datetime, timezone
-from tinydb import Query
 from metaflow import step, card, current
 from metaflow.cards import Markdown, Table
 
-from ttd.flows.utils import get_articles_with_no_error
+from ttd.flows.analysis import get_reference_domains, format_duration, \
+                               generate_domain_match_markdown, \
+                               prepare_article_distribution_indexed_by_date, \
+                               plot_article_distribution_indexed_by_date, \
+                               prepare_error_distribution_by_domain_and_status, \
+                               plot_error_distribution_by_domain_and_status, \
+                               prepare_domain_counts, generate_domain_match_markdown, \
+                               prepare_field_coverage, generate_field_coverage_markdown
+from ttd.flows.analysis import get_articles_with_no_error
 from ttd.storage.ttd_storage import TTDStorage
 
 logger = logging.getLogger(__name__)
 
-import pandas as pd
-import matplotlib.pyplot as plt
-from datetime import datetime
-from io import BytesIO
-from metaflow.cards import Markdown, Image
-from email.utils import parsedate_to_datetime
-
-def generate_status_color_map(statuses):
+def render_domain_match_card_group(articles, rss_files: dict):
     """
-    Map statuses to colors: "No Error" gets lightgreen, others get unique pastel colors.
+    Generate one markdown section per RSS file (with title), comparing domains.
     """
-    pastel_palette = [
-        "lightcoral", "skyblue", "plum", "khaki", "salmon",
-        "lightsalmon", "palegoldenrod", "lightsteelblue", "thistle"
-    ]
+    current.card.append(Markdown("## 🗂️ Domain Distribution in Ingested Articles"))
 
-    color_map = {}
-    print("statuses", statuses)
-    for i, status in enumerate(statuses):
-        if status == "No Error":
-            color_map[status] = "lightgreen"
-        else:
-            color_map[status] = pastel_palette[i % len(pastel_palette)]
-    return color_map
+    domain_counts = prepare_domain_counts(articles)
 
-def render_article_repartition_over_time(articles):
+    for label, path in rss_files.items():
+        reference_domains = get_reference_domains(path)
+        markdown = generate_domain_match_markdown(domain_counts, reference_domains, label)
+        current.card.append(Markdown(markdown))
+
+def render_article_distribution_indexed_by_date(articles):
     current.card.append(Markdown("## 📊 Article Repartition Over Time (by Domain)"))
 
-    if not articles:
-        current.card.append(Markdown("_No articles found to plot._"))
+    grouped = prepare_article_distribution_indexed_by_date(articles)
+    if grouped.empty:
+        current.card.append(Markdown("_No valid articles to plot._"))
         return
-
-    # Parse dates and collect domains
-    parsed_data = []
-    for article in articles:
-        pub_date = article.get("published_date")
-        domain = article.get("url_domain", "Unknown")
-        try:
-            dt = parsedate_to_datetime(pub_date) if isinstance(pub_date, str) else pub_date
-            parsed_data.append({"date": dt.date(), "domain": domain})
-        except Exception:
-            continue
-
-    if not parsed_data:
-        current.card.append(Markdown("_No valid dates to plot._"))
-        return
-
-    # Create a DataFrame
-    df = pd.DataFrame(parsed_data)
-
-    # Pivot table: rows = date, columns = domain, values = counts
-    grouped = df.groupby(["date", "domain"]).size().unstack(fill_value=0)
-
-    statuses = grouped.columns.tolist()
-    color_map = generate_status_color_map(statuses)
-    colors = [color_map[status] for status in statuses]
-
-    fig, ax = plt.subplots(figsize=(12, 5))
-    grouped.plot(kind="bar", stacked=True, ax=ax, color=colors)
-    ax.set_title("Articles per Day by Domain")
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Number of Articles")
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-
-    # Save to card
+    
+    fig = plot_article_distribution_indexed_by_date(grouped)
     buf = BytesIO()
     fig.savefig(buf, format="png")
     buf.seek(0)
     current.card.append(Image(buf.read()))
+
 
 def render_error_distribution_by_domain_and_status(articles):
     current.card.append(Markdown("## ❗ Error Distribution by Domain and Status"))
@@ -87,57 +57,26 @@ def render_error_distribution_by_domain_and_status(articles):
         current.card.append(Markdown("_No articles available._"))
         return
 
-    # Extract (domain, status) for each article with an error
-    records = []
-    for article in articles:
-        metadata = article.get("metadata", {})
-        error = metadata.get("error")
-        if error:
-            records.append({"domain": article["url_domain"], "status": error["status"]})
-        else:
-            records.append({"domain": article["url_domain"], "status": "No Error"})
+    grouped = prepare_error_distribution_by_domain_and_status(articles)
 
-    if not records:
+    if grouped.empty:
         current.card.append(Markdown("_No error records with status found._"))
         return
 
-    # Create DataFrame
-    df = pd.DataFrame(records)
+    fig = plot_error_distribution_by_domain_and_status(grouped)
 
-    # Group by domain and status
-    grouped = df.groupby(["domain", "status"]).size().unstack(fill_value=0)
-
-    statuses = grouped.columns.tolist()
-    color_map = generate_status_color_map(statuses)
-    colors = [color_map[status] for status in statuses]
-
-    # Plot stacked bar chart
-    fig, ax = plt.subplots(figsize=(12, 6))
-    grouped.plot(kind="bar", stacked=True, ax=ax, color=colors)
-    ax.set_title("Errors by Domain and Status")
-    ax.set_xlabel("URL Domain")
-    ax.set_ylabel("Number of Errors")
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-
-    # Save to card
     buf = BytesIO()
     fig.savefig(buf, format="png")
     buf.seek(0)
     current.card.append(Image(buf.read()))
 
-def format_duration(seconds: float) -> str:
-    """Convert duration in seconds into a human-readable string."""
-    seconds = int(round(seconds))
-    if seconds < 60:
-        return f"{seconds}s"
+def render_field_coverage_card(articles):
+    total = len(articles)
+    field_coverage = prepare_field_coverage(articles)
+    markdown = generate_field_coverage_markdown(field_coverage, total)
 
-    mins, secs = divmod(seconds, 60)
-    if mins < 60:
-        return f"{mins}m {secs}s"
-
-    hrs, mins = divmod(mins, 60)
-    return f"{hrs}h {mins}m {secs}s"
+    current.card.append(Markdown("## 🧾 Field Coverage Summary"))
+    current.card.append(Markdown(markdown))
 
 @card
 @step
@@ -173,11 +112,21 @@ def execute(flow):
     ))
 
     storage = TTDStorage(flow.config.get("db_path"))
-    articles = storage.get_articles_in_range(
+    articles = storage.get_obj_in_range(
         flow.articles_table,
         flow.first_id,
         flow.last_id
     )
     articles_with_no_error = get_articles_with_no_error(articles)
-    render_article_repartition_over_time(articles_with_no_error)
+
+    rss_files = {
+        "Regular RSS Feeds": Path(Path(storage.db_path).parent,'rss_feeds.txt'),
+        "Stealth RSS Feeds": Path(Path(storage.db_path).parent,'rss_feeds_stealth.txt')
+    }
+    render_domain_match_card_group(articles_with_no_error, rss_files)
+
+    render_article_distribution_indexed_by_date(articles_with_no_error)
+
     render_error_distribution_by_domain_and_status(articles)
+
+    render_field_coverage_card(articles_with_no_error)

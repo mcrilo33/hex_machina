@@ -42,7 +42,7 @@ class BaseArticleScraper(scrapy.Spider, ABC):
         )
         
     def limit_is_reached(self) -> bool:
-        if self.articles_limit is not None and self.stored_count >= self.articles_limit:
+        if self.articles_limit != 0 and self.stored_count >= self.articles_limit:
             return True
         else:
             return False

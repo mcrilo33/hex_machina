@@ -53,10 +53,16 @@ def execute(flow):
                 self.stored_count
 
     process = CrawlerProcess(get_project_settings())
+    flow.metrics["stored_count"][step_name]["rss_article_scraper"] = 0
     process.crawl(CustomRSSArticleScraper)
+    flow.metrics["stored_count"][step_name]["stealth_rss_article_scraper"] = 0
     process.crawl(CustomStealthRSSArticleScraper)
     process.start()
-    flow.last_id = max([int(doc.get("doc_id")) for doc in storage.get_all(flow.articles_table)])
+    articles = storage.get_all(flow.articles_table)
+    if len(articles) == 0:
+        flow.last_id = 0
+    else:
+        flow.last_id = max([int(doc.get("doc_id")) for doc in articles])
     total_time = time.time() - start_time
     flow.metrics.setdefault("step_duration", {})[step_name] = total_time
     logger.info(f"✅ Step {step_name} done in {total_time:.2f}s")
