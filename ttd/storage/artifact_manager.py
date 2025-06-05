@@ -78,3 +78,19 @@ class ArtifactManager:
                 return super().__getitem__(item)
 
         return LazyRecord(record)
+
+    def resolve_lazy_record(self, record: dict) -> dict:
+        """
+        Convert a LazyRecord (or dict) into a fully resolved simple dict.
+        This will force loading of all lazy fields.
+        """
+        resolved = {}
+        # Use LazyRecord logic if present, else just copy
+        lazy = self.lazy_load_fields(record)
+        for key in list(lazy.keys()):
+            try:
+                resolved[key] = lazy[key]  # Triggers loading if lazy
+            except Exception:
+                # If a field cannot be loaded, skip or keep as is
+                resolved[key] = lazy.get(key)
+        return resolved
