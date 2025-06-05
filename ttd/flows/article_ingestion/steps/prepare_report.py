@@ -4,10 +4,9 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from pathlib import Path
 from io import BytesIO
-from metaflow.cards import Markdown, Image
 from datetime import datetime, timezone
 from metaflow import step, card, current
-from metaflow.cards import Markdown, Table
+from metaflow.cards import Markdown, Table, Image
 
 from ttd.flows.analysis import get_reference_domains, format_duration, \
                                generate_domain_match_markdown, \
