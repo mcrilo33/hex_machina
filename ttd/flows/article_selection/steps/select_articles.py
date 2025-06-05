@@ -4,7 +4,7 @@ import time
 from typing import Callable
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
-from dateutil.parser import parse as parse_date
+from ttd.utils.date import to_aware_utc
 from copy import deepcopy
 
 from ttd.storage.ttd_storage import TTDStorage
@@ -123,12 +123,12 @@ def execute(flow):
 
     articles_for_cluster_scores = [
         article for article in flow.articles
-        if parse_date(article["published_date"]) >= flow.parsed_cluster_date_threshold
+        if to_aware_utc(article["published_date"]) >= flow.parsed_cluster_date_threshold
         and "clusters_names_in_order_added" in article
     ]
     articles_for_selection = [
         article for article in flow.articles
-        if parse_date(article["published_date"]) >= flow.parsed_date_threshold
+        if to_aware_utc(article["published_date"]) >= flow.parsed_date_threshold
         and "clusters_names_in_order_added" in article
     ]
     logger.info("✅ Scoring clusters...")

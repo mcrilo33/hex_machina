@@ -1,7 +1,6 @@
 import scrapy
 import logging
-from datetime import datetime
-from dateutil.parser import parse as parse_date
+from ttd.utils.date import to_aware_utc
 from abc import ABC, abstractmethod
 from typing import List
 
@@ -31,7 +30,7 @@ class BaseArticleScraper(scrapy.Spider, ABC):
         self.articles_table = articles_table
         self.articles_limit = articles_limit
         self.date_threshold = date_threshold
-        self.parsed_date_threshold = parse_date(date_threshold) if date_threshold else None
+        self.parsed_date_threshold = to_aware_utc(date_threshold) if date_threshold else None
 
     def should_skip_entry(self, entry: dict) -> bool:
         """ Return True if the entry should be skipped. """
@@ -57,7 +56,7 @@ class BaseArticleScraper(scrapy.Spider, ABC):
             return False
 
         try:
-            return parse_date(published_str) < self.parsed_date_threshold
+            return to_aware_utc(published_str) < self.parsed_date_threshold
         except Exception as e:
             logger.warning(
                 f"Failed to parse published date {published_str}: {e}"

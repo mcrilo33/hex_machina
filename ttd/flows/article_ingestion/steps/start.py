@@ -1,5 +1,5 @@
 import logging
-from dateutil.parser import parse as parse_date
+from ttd.utils.date import to_aware_utc
 
 from ttd.storage.ttd_storage import TTDStorage
 from ttd.utils.config import load_config
@@ -25,7 +25,7 @@ def execute(flow):
     with open(flow.config["feeds_stealth_path"], "r") as f:
         flow.rss_stealth_feeds = [line.strip() for line in f if line.strip()]
     flow.git_metadata = get_git_metadata()
-    flow.parsed_date_threshold = parse_date(flow.date_threshold)
+    flow.parsed_date_threshold = to_aware_utc(flow.date_threshold)
     storage = TTDStorage(flow.config.get("db_path"))
     logger.info("✅ Database first connection established.")
     _clean_up_tables(storage, flow)

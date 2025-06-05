@@ -2,7 +2,7 @@
 import logging
 import time
 from tinydb import Query
-from dateutil.parser import parse as parse_date
+from ttd.utils.date import to_aware_utc
 
 from ttd.storage.ttd_storage import TTDStorage
 
@@ -14,7 +14,7 @@ def _load_query(storage, articles_table, date_threshold):
     Article = Query()
     articles = storage.search(
         articles_table,
-        Article.published_date.test(lambda d: parse_date(d) >= date_threshold)
+        Article.published_date.test(lambda d: to_aware_utc(d) >= date_threshold)
     )
     logger.info(f"✅ Loaded {len(articles)} articles from '{articles_table}': "
                 f"len(articles)={len(articles)}, date_threshold='{date_threshold}'")

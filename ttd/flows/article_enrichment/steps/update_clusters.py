@@ -2,7 +2,7 @@
 import logging
 import time
 from datetime import datetime, timezone
-from dateutil.parser import parse as parse_date
+from ttd.utils.date import to_aware_utc
 from dateutil.relativedelta import relativedelta
 from numpy import array
 from sklearn.metrics.pairwise import cosine_similarity
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def _count_since_last(history, delta):
     threshold = datetime.now(timezone.utc) - delta
-    return sum(1 for d in history if parse_date(d) > threshold)
+    return sum(1 for d in history if to_aware_utc(d) > threshold)
 
 
 def _update_cluster(cluster, storage):

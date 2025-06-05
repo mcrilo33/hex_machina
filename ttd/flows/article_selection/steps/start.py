@@ -1,5 +1,5 @@
 import logging
-from dateutil.parser import parse as parse_date
+from ttd.utils.date import to_aware_utc
 
 from ttd.storage.ttd_storage import TTDStorage
 from ttd.utils.config import load_config
@@ -22,8 +22,8 @@ def execute(flow):
     # Initialize storage
     flow.config = load_config()
     flow.git_metadata = get_git_metadata()
-    flow.parsed_date_threshold = parse_date(flow.date_threshold)
-    flow.parsed_cluster_date_threshold = parse_date(flow.cluster_date_threshold)
+    flow.parsed_date_threshold = to_aware_utc(flow.date_threshold)
+    flow.parsed_cluster_date_threshold = to_aware_utc(flow.cluster_date_threshold)
     flow.min_parsed_date_threshold = min(flow.parsed_date_threshold,
                                          flow.parsed_cluster_date_threshold)
     storage = TTDStorage(flow.config.get("db_path"))
