@@ -12,7 +12,7 @@ class OpenRouterConfig(BaseModel):
         "https://openrouter.ai/api/v1", description="API base URL"
     )
     model_name: str = Field(
-        "meta-llama/llama-4-maverick:free", description="Model name / identifier"
+        "google/gemini-2.0-flash-001", description="Model name / identifier"
     )
     api_key_env_var: Optional[str] = Field(
         "OPENROUTER_API_KEY", description="Environment variable for API key"
