@@ -2,7 +2,7 @@
 import logging
 import time
 
-from ttd.flows.utils import predict
+from ttd.flows.predict import predict
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,7 @@ def execute(flow):
     }
 
     for idx, article in enumerate(flow.articles):
+        logger.info(f"✅ Article {idx+1}/{len(flow.articles)} ")
         is_ai = flow.metrics["models_io"]["article_is_ai_classifier_spec"]["outputs"][idx]
         if is_ai is not None and is_ai["output"]:
             inputs, outputs, errors = predict(model_spec_name, [article])

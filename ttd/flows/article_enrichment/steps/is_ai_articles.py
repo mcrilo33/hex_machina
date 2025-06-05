@@ -5,7 +5,7 @@ import time
 from ttd.utils.print import safe_pretty_print
 from ttd.storage.ttd_storage import TTDStorage
 from ttd.models.loader import load_model_spec
-from ttd.flows.utils import predict
+from ttd.flows.predict import predict
 
 logger = logging.getLogger(__name__)
 

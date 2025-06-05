@@ -1,3 +1,4 @@
+import logging
 from metaflow import FlowSpec, step, Parameter
 
 # Import individual step functions
@@ -22,6 +23,7 @@ from ttd.flows.article_enrichment.steps.prepare_report \
     import execute as prepare_report_step
 from ttd.flows.article_enrichment.steps.end import execute as end_step
 
+logger = logging.getLogger(__name__)
 
 class ArticleEnrichmentFlow(FlowSpec):
     """
@@ -38,11 +40,11 @@ class ArticleEnrichmentFlow(FlowSpec):
 
     articles_limit = Parameter('articles_limit',
                                help='Maximum number of articles to process',
-                               default=2)
+                               default=None)
 
     date_threshold = Parameter('date_threshold',
                                help='Process articles published after this date',
-                               default='Thu, 03 Apr 2025 18:00:00 +0000')
+                               default='Thu, 03 Mar 2025 18:00:00 +0000')
 
     replicates_table = Parameter('replicates_table',
                                 help='Replicates articles to this table',
@@ -65,8 +67,8 @@ class ArticleEnrichmentFlow(FlowSpec):
         """Load articles published after a date threshold."""
         load_articles_step(self)
         if len(self.articles) == 0:
-            self.log.warning("No articles to process.")
-            self.log.warning("Exiting flow.")
+            logger.warning("No articles to process.")
+            logger.warning("Exiting flow.")
             self.next(self.end)
             return
         self.next(self.is_ai_articles)

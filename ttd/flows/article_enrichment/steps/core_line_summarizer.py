@@ -2,7 +2,7 @@
 import logging
 import time
 
-from ttd.flows.utils import predict
+from ttd.flows.predict import predict
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,7 @@ def execute(flow):
 
     dense_summaries = flow.metrics["models_io"]["dense_summarizer_spec"]["outputs"]
     for idx, dense_summary in enumerate(dense_summaries):
+        logger.info(f"✅ Article {idx+1}/{len(dense_summaries)} ")
         if dense_summary: 
             inputs, outputs, errors = predict(model_spec_name, [dense_summary])
             flow.metrics["models_io"][model_spec_name]["inputs"] += inputs
