@@ -63,11 +63,4 @@ def execute(flow):
 
         current.card.append(Table(headers=headers, data=rows))
 
-    # --- Report Sections ---
-    render_score_dict("Linear Cluster Scores", flow.selection.get("linear_cluster_scores", {}))
-    render_score_dict("Exponential Cluster Scores", flow.selection.get("exponential_cluster_scores", {}))
-
-    render_articles("Top N Linearly Scored Articles", flow.selection.get("linearly_selected_articles", []))
-    render_articles("Top N Exponentially Scored Articles", flow.selection.get("exponentially_selected_articles", []))
-    render_articles("Top N Linearly Scored Articles with Diversity", flow.selection.get("linearly_selected_articles_with_diversity", []))
-    render_articles("Top N Exponentially Scored Articles with Diversity", flow.selection.get("exponentially_selected_articles_with_diversity", []))
+    render_articles("Top N Linearly Scored Articles selected with diversity", flow.selection.get("linearly_selected_articles_with_diversity", []))

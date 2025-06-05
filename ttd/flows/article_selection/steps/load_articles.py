@@ -14,18 +14,24 @@ def _load_query(storage, articles_table, date_threshold):
     Article = Query()
     articles = storage.search(
         articles_table,
-        Article.published_date.test(lambda d: to_aware_utc(d) >= date_threshold)
+        Article.published_date.test(
+            lambda d: to_aware_utc(d) >= date_threshold
+        ),
     )
-    logger.info(f"✅ Loaded {len(articles)} articles from '{articles_table}': "
-                f"len(articles)={len(articles)}, date_threshold='{date_threshold}'")
+    logger.info(
+        f"✅ Loaded {len(articles)} articles from '{articles_table}': "
+        f"len(articles)={len(articles)}, date_threshold='{date_threshold}'"
+    )
     return articles
 
-def _filter_already_selected_articles(storage, articles, articles_table, selected_articles_table):
+def _filter_already_selected_articles(
+    storage, articles, articles_table, selected_articles_table
+):
     """Filter out already selected articles."""
     Article = Query()
     selected_articles = storage.search(
         selected_articles_table,
-        Article.original_table_name == articles_table
+        Article.original_table_name == articles_table,
     )
     filtered_out = []
     kept_articles = []
@@ -38,8 +44,10 @@ def _filter_already_selected_articles(storage, articles, articles_table, selecte
             filtered_out.append(article)
         else:
             kept_articles.append(article)
-    logger.info(f"✅ Filtered out {len(filtered_out)} already selected articles "
-                f"from '{selected_articles_table}'")
+    logger.info(
+        f"✅ Filtered out {len(filtered_out)} already selected articles "
+        f"from '{selected_articles_table}'"
+    )
     return kept_articles
 
 def execute(flow):
@@ -51,10 +59,14 @@ def execute(flow):
 
     storage = TTDStorage(flow.config.get("db_path"))
 
-    articles = _load_query(storage, flow.articles_table, flow.min_parsed_date_threshold)
+    articles = _load_query(
+        storage, flow.articles_table, flow.min_parsed_date_threshold
+    )
 
     logger.info("✅ Filtering out already replicated articles...")
-    articles = _filter_already_selected_articles(storage, articles, flow.articles_table, "selected_articles")
+    articles = _filter_already_selected_articles(
+        storage, articles, flow.articles_table, flow.selected_articles_table
+    )
     flow.articles = articles
     logger.info(f"✅ Loaded {len(flow.articles)} articles...")
     total_time = time.time() - start_time

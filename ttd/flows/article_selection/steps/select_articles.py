@@ -5,6 +5,7 @@ from typing import Callable
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from ttd.utils.date import to_aware_utc
+from ttd.flows.analysis import filter_articles_by_clusters
 from copy import deepcopy
 
 from ttd.storage.ttd_storage import TTDStorage
@@ -69,7 +70,8 @@ def compute_article_cluster_scores(articles: list, cluster_scores: dict, order_m
         scores = []
         for order, tag in enumerate(tags):
             if tag in cluster_scores:
-                scores.append(order_metric(order))
+                tag_score = cluster_scores[tag] * order_metric(order)
+                scores.append(tag_score)
         article["clusters_score"] = sum(scores)
     return articles
 
@@ -102,14 +104,20 @@ def select_top_articles_with_diversity(
     articles = compute_article_cluster_scores(articles, cluster_scores, order_metric=order_metric)
     # Select top N articles based on cluster scores
     selected_articles = []
+    title_already_selected = set()
     for _ in range(n):
         # Select the article with the highest cluster score
-        max_item = max(articles, key=lambda d: d["clusters_score"])
+        selected = False
+        while not selected:
+            max_item = max(articles, key=lambda d: d["clusters_score"])
+            articles.remove(max_item)
+            if max_item["title"] not in title_already_selected:
+                selected = True
+                title_already_selected.add(max_item["title"])
         selected_articles.append(max_item)
         # Remove best cluster of the selected item from the cluster scores
         # to ensure diversity
         cluster_scores[max_item["clusters_names_in_order_added"][0]] = 0
-        articles.remove(max_item)
         articles = compute_article_cluster_scores(articles, cluster_scores, order_metric=order_metric)
     
     return selected_articles
@@ -121,6 +129,10 @@ def execute(flow):
     start_time = time.time()
     flow.metrics.setdefault("step_start_times", {})[step_name] = start_time
 
+    flow.articles = filter_articles_by_clusters(
+        flow.articles,
+        ["artificial intelligence", "large language models", "India"]
+    )
     articles_for_cluster_scores = [
         article for article in flow.articles
         if to_aware_utc(article["published_date"]) >= flow.parsed_cluster_date_threshold
@@ -132,42 +144,19 @@ def execute(flow):
         and "clusters_names_in_order_added" in article
     ]
     logger.info("✅ Scoring clusters...")
-    linear_cluster_scores = compute_cluster_scores(articles_for_cluster_scores,
-                                                   order_metric=linear_order_metric)
-    exponential_cluster_scores = compute_cluster_scores(
-        articles_for_cluster_scores, order_metric=exponential_order_metric(0.5)
-    )
 
-    logger.info("✅ Scoring articles...")
-    linearly_scored_articles = compute_article_cluster_scores(
-        articles_for_selection, linear_cluster_scores, order_metric=linear_order_metric
-    )
-    top_n_linearly_scored_articles = get_top_n_articles(linearly_scored_articles, n=flow.articles_limit)
-    exponentialy_scored_articles = compute_article_cluster_scores(
-        articles_for_selection, linear_cluster_scores, order_metric=exponential_order_metric(0.5)
-    )
-    top_n_exponentialy_scored_articles = get_top_n_articles(exponentialy_scored_articles, n=flow.articles_limit)
     top_n_linearly_scored_articles_with_diversity = select_top_articles_with_diversity(
         articles_for_cluster_scores, articles_for_selection,
         order_metric=linear_order_metric, n=flow.articles_limit
     )
-    top_n_exponentialy_scored_articles_with_diversity = select_top_articles_with_diversity(
-        articles_for_cluster_scores, articles_for_selection,
-        order_metric=exponential_order_metric(0.5), n=flow.articles_limit
-    )
     storage = TTDStorage(flow.config.get("db_path"))
     selection = {
         "selection_time": str(datetime.now(timezone.utc)),
-        "linear_cluster_scores": linear_cluster_scores,
-        "exponential_cluster_scores": exponential_cluster_scores,
-        "linearly_selected_articles": top_n_linearly_scored_articles,
-        "exponentially_selected_articles": top_n_exponentialy_scored_articles,
         "linearly_selected_articles_with_diversity": top_n_linearly_scored_articles_with_diversity,
-        "exponentially_selected_articles_with_diversity": top_n_exponentialy_scored_articles_with_diversity
     }
 
-    for article in top_n_exponentialy_scored_articles_with_diversity:
-        storage.save("selected_articles", 
+    for article in top_n_linearly_scored_articles_with_diversity:
+        storage.save(flow.selected_articles_table, 
             {
                 "original_table_name": flow.articles_table,
                 "original_doc_id": article["doc_id"]

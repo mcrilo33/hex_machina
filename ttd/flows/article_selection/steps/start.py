@@ -12,10 +12,11 @@ def _clean_up_tables(storage, flow):
     """ Clean up tables for a fresh run. """
     if flow.clean_tables:
         storage.db.drop_table("selections")
-        storage.db.drop_table("selected_articles")
+        storage.db.drop_table(flow.selected_articles_table)
         logger.info("✅ Database cleaned.")
     else:
         logger.info("✅ Database not cleaned.")
+
 
 def execute(flow):
     """ Initialize the pipeline, storage and metrics. """

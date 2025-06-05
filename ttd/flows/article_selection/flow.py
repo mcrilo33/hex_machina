@@ -37,6 +37,10 @@ class ArticleSelectionFlow(FlowSpec):
                                       '(selections, selected_articles)'),
                                 default=False)
 
+    selected_articles_table = Parameter('selected_articles_table',
+                               help='Table to register selected articles',
+                               default='selected_articles')
+
     @step
     def start(self):
         """Initialize the pipeline."""
