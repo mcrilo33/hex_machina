@@ -1,4 +1,5 @@
 # Uninteresting project's data
+research
 research/data
 data
 
@@ -186,3 +187,11 @@ ttd/config.yaml
 
 # Metaflow
 .metaflow/
+
+# Cursor
+.cursor/
+.cursorignore
+
+.DS_Store
+report_*.html
+test_*.py
