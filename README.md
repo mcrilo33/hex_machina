@@ -1,4 +1,4 @@
-# ![Hex Eye](./docs/images/hex-eye.png) Hex Machina – AI Newsletter Service
+# <img src="./docs/images/hex-eye.png" alt="hex-eye" width="60" height="60" style="vertical-align: middle;"/> Hex Machina – AI Newsletter Service
 
 **Hex Machina is a free, AI-driven newsletter service** that automatically monitors AI research, blogs, and announcements, summarizes key insights, and delivers **high-quality, concise newsletters**.
 
