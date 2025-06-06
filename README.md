@@ -1,45 +1,46 @@
-# 📢 Train, Tune, Deploy - AI Newsletter Service
+# <img src="./docs/images/hex-eye.png" alt="hex-eye" width="20" height="20" /> Hex Machina – AI Newsletter Service
 
-🚀 **TTD (Train, Tune, Deploy) is a free, AI-driven newsletter service** that automatically monitors AI research, blogs, and announcements, summarizes key insights, and delivers **high-quality, concise newsletters**.
+🚀 **Hex Machina is a free, AI-driven newsletter service** that automatically monitors AI research, blogs, and announcements, summarizes key insights, and delivers **high-quality, concise newsletters**.
 
-> AI News, Curated by AI.
+> AI News, Compiled by the Machine.
 
 ## 📌 Overview
 
-Keeping up with the **fast-moving AI landscape** is **time-consuming**. Traditional manual curation can’t scale.
-**This is a funny problem to solve.**
-
+Keeping up with the **fast-moving AI landscape** is **time-consuming**. Traditional manual curation can’t scale.  
+**Hex Machina solves this with automated intelligence.**
 
 ## ✅ Features & Scope
 
 ### ✔ In-Scope
 
-✔ **Ingestion** → Ingests articles from AI-related websites. ✅
+✔ **Ingestion** → Ingests articles from AI-related websites. ✅  
 
-✔ **Article Enrichment Flow** → Adds tags, reading time, complexity, summaries. ✅
+✔ **Article Enrichment Flow** → Adds tags, summaries, etc... ✅  
 
-✔ **Classifier** → Selects most relevant items. (Not yet implemented)
+✔ **Selection** → Selects most relevant items in an unsupervised way. ✅  
 
-✔ **Newsletter Generator** → Compiles and formats daily updates. (Not yet implemented)
+✔ **Newsletter Generator** → Compiles and formats weekly updates. (Not yet implemented)  
 
-✔ **Orchestration Script** → Runs the full pipeline automatically. (Not yet implemented)
+✔ **Orchestration Script** → Runs the full pipeline automatically. (Not yet implemented)  
 
 ## 🏗 Technology Stack
 
-| Component | Technology |
-| --- | --- |
-| Scraping            | Scrapy                       |
-| Database            | TinyDB                       |
-| Tagging & NLP       | Hugging Face / OpenAI API    |
-| Workflow            | Metaflow                     |
-| Summarization       | Transformer-based models     |
-| Hosting             | Beehiv                       |
+| Component          | Technology                   |
+|--------------------|------------------------------|
+| Scraping           | Scrapy                       |
+| Database           | TinyDB                       |
+| LLMs               | OpenRouter / OpenAI          |
+| Tagging & NLP      | Hugging Face / OpenAI        |
+| Workflow           | Metaflow                     |
+| Hosting            | Beehiiv                      |
+| Ochestration       | Zapier                       |
+
 
 ## 📚 Documentation
 
-[TTD Newsletter Documentation](docs/README.md)
+[Hex Machina Documentation](docs/README.md)
 
-##  Contact & Support
+## 💬 Contact & Support
 
 For questions or contributions, contact **Mathieu Crilout** at <mathieu.crilout@gmail.com>.
 
@@ -50,4 +51,4 @@ If you find this useful, give it a ⭐ on **GitHub!** 😊
 ## 📜 License
 
 This software is proprietary and owned by **Mathieu Crilout**.  
-Unauthorized use, distribution, or modification is prohibited.  
+Unauthorized use, distribution, or modification is prohibited.
