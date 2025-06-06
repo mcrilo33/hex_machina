@@ -1,4 +1,4 @@
-""" Unified storage interface for the full TTD application. """
+""" Unified storage interface for the full Hex application. """
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any
@@ -7,9 +7,9 @@ from .base_storage import TinyDBStorageService
 from .artifact_manager import ArtifactManager
 
 
-class TTDStorage(TinyDBStorageService):
+class HexStorage(TinyDBStorageService):
     """
-    Unified storage interface for the full TTD application.
+    Unified storage interface for the full Hex application.
     Manages all entity tables (articles, models, tags, predictions, etc.)
     using TinyDB as backend.
     Automatically handles large object persistence using ArtifactManager.

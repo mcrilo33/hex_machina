@@ -4,10 +4,10 @@ Backed by pluggable storage implementations (e.g., TinyDB).
 """
 
 from .base_storage import StorageService, TinyDBStorageService
-from .ttd_storage import TTDStorage
+from .hex_storage import HexStorage
 
 __all__ = [
     "StorageService",
     "TinyDBStorageService",
-    "TTDStorage",
+    "HexStorage",
 ]
