@@ -20,7 +20,7 @@ Please play with it !
 
 The **Article Ingestion Flow** is responsible for fetching and preparing raw content from a variety of external sources. It forms the foundation of the Hex Machina pipeline by identifying, downloading, and standardizing articles into a uniform format suitable for further processing.
 
-<img src="../notebooks/images/article_ingestion_flow.png" width="600" alt="Article Ingestion Flow Diagram" />
+<img src="../notebooks/images/article_ingestion_flow.png" width="800" alt="Article Ingestion Flow Diagram" />
 
 This flow is designed to be **modular**, **resumable**, and easy to test with dummy data. It is implemented using [Metaflow](https://metaflow.org/) to manage each step of the pipeline.
 
@@ -60,7 +60,7 @@ You can test and explore this flow interactively in the notebook:
 
 The **Article Enrichment Flow** transforms raw, ingested articles into enriched, structured content ready for intelligent selection and presentation. It enhances the data by classifying, summarizing, tagging, and embedding each article — making them semantically searchable and more informative.
 
-<img src="../notebooks/images/article_enrichment_flow.png" width="600" alt="Article Enrichment Flow Diagram" />
+<img src="../notebooks/images/article_enrichment_flow.png" width="400" alt="Article Enrichment Flow Diagram" />
 
 This flow builds on the ingestion process and prepares articles for the next stage using machine learning models, natural language processing, and metadata generation. Like all Hex Machina flows, it's implemented in [Metaflow](https://metaflow.org/) and can be tested easily with dummy inputs.
 
@@ -106,7 +106,7 @@ You can test and explore this flow interactively in the notebook:
 
 The **Article Selection Flow** is the final stage of the Hex Machina pipeline. It evaluates enriched articles and intelligently selects the most relevant and diverse subset to include in the newsletter. This ensures that each issue delivers high-quality, well-balanced content to readers.
 
-<img src="../notebooks/images/article_selection_flow.png" width="600" alt="Article Selection Flow Diagram" />
+<img src="../notebooks/images/article_selection_flow.png" width="500" alt="Article Selection Flow Diagram" />
 
 This flow applies scoring heuristics, diversity constraints, and content filtering to produce a polished content bundle ready for rendering. Like all Hex Machina flows, it is orchestrated with [Metaflow](https://metaflow.org/) and can be run interactively or via CLI.
 
