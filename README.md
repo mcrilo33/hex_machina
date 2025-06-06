@@ -1,17 +1,15 @@
-# <img src="./docs/images/hex-eye.png" alt="hex-eye" width="20" height="20" /> Hex Machina – AI Newsletter Service
+# <img src="./docs/images/hex-eye.png" alt="hex-eye" width="40" height="40" /> Hex Machina – AI Newsletter Service
 
-🚀 **Hex Machina is a free, AI-driven newsletter service** that automatically monitors AI research, blogs, and announcements, summarizes key insights, and delivers **high-quality, concise newsletters**.
+**Hex Machina is a free, AI-driven newsletter service** that automatically monitors AI research, blogs, and announcements, summarizes key insights, and delivers **high-quality, concise newsletters**.
 
 > AI News, Compiled by the Machine.
 
-## 📌 Overview
+## <img src="./docs/images/hex-eye.png" alt="hex-eye" width="32" height="32" /> Overview
 
 Keeping up with the **fast-moving AI landscape** is **time-consuming**. Traditional manual curation can’t scale.  
 **Hex Machina solves this with automated intelligence.**
 
 ## ✅ Features & Scope
-
-### ✔ In-Scope
 
 ✔ **Ingestion** → Ingests articles from AI-related websites. ✅  
 
@@ -50,5 +48,5 @@ If you find this useful, give it a ⭐ on **GitHub!** 😊
 
 ## 📜 License
 
-This software is proprietary and owned by **Mathieu Crilout**.  
+The code is public, you can look at it, but this software is proprietary and owned by **Mathieu Crilout**.  
 Unauthorized use, distribution, or modification is prohibited.
