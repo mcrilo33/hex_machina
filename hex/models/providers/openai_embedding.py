@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from openai import OpenAI
 import numpy as np
 
-from ttd.utils.hash import sha256_key
+from hex.utils.hash import sha256_key
 
 
 def compute_tag_list_similarity(tags1: List[str],

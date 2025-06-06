@@ -2,7 +2,7 @@
 import logging
 import time
 
-from ttd.flows.predict import predict
+from hex.flows.predict import predict
 
 logger = logging.getLogger(__name__)
 

@@ -1,9 +1,9 @@
 from typing import Any, Optional, Type, TypeVar
 from pydantic import BaseModel, Field, model_validator
 
-from ttd.utils.config import load_path_resolver
-from ttd.models.providers.openai_model import OpenAIModel
-from ttd.models.providers.openai_embedding import OpenAIEmbedding
+from hex.utils.config import load_path_resolver
+from hex.models.providers.openai_model import OpenAIModel
+from hex.models.providers.openai_embedding import OpenAIEmbedding
 
 InputType = TypeVar('InputType', bound=BaseModel)
 OutputType = TypeVar('OutputType', bound=BaseModel)

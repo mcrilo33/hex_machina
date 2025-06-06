@@ -1,11 +1,11 @@
 from metaflow import FlowSpec, step, Parameter
 
-from ttd.flows.article_ingestion.steps.start import execute as start_step
-from ttd.flows.article_ingestion.steps.ingest_rss_articles \
+from hex.flows.article_ingestion.steps.start import execute as start_step
+from hex.flows.article_ingestion.steps.ingest_rss_articles \
     import execute as ingest_rss_articles_step
-from ttd.flows.article_ingestion.steps.prepare_report \
+from hex.flows.article_ingestion.steps.prepare_report \
     import execute as prepare_report_step
-from ttd.flows.article_ingestion.steps.end import execute as end_step
+from hex.flows.article_ingestion.steps.end import execute as end_step
 
 
 class ArticleIngestionFlow(FlowSpec):

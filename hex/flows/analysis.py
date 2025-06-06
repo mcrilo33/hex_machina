@@ -1,4 +1,4 @@
-""" Analysis functions for the TTD pipeline. """
+""" Analysis functions for the Hex pipeline. """
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -10,7 +10,7 @@ import numpy as np
 import os
 import uuid
 
-from ttd.ingestion.parser import extract_domain
+from hex.ingestion.parser import extract_domain
 
 
 EXTENDED_PASTELS = [

@@ -4,9 +4,9 @@ import time
 from tinydb import Query
 from evaluate import load as load_metric
 
-from ttd.storage.ttd_storage import TTDStorage
-from ttd.models.providers.openai_embedding import compute_tag_list_similarity
-from ttd.models.loader import load_model_spec
+from hex.storage.hex_storage import HexStorage
+from hex.models.providers.openai_embedding import compute_tag_list_similarity
+from hex.models.loader import load_model_spec
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ def execute(flow):
         "errors": []
     }
 
-    storage = TTDStorage(flow.config.get("db_path"))
+    storage = HexStorage(flow.config.get("db_path"))
     flow.tag_embedding_spec_name = "tag_embedding_spec"
     tag_embedding_spec = load_model_spec(flow.tag_embedding_spec_name)
     TagWord = Query()

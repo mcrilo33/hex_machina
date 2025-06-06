@@ -7,14 +7,14 @@ from metaflow import step, card, current
 from metaflow.cards import Markdown, Table, Image
 from PIL import Image as PILImage
 
-from ttd.flows.analysis import get_domain_table_data
-from ttd.flows.analysis import filter_articles_by_clusters
-from ttd.flows.analysis import plot_summary_distributions
-from ttd.flows.analysis import save_plot
-from ttd.flows.analysis import get_rouge_top_bottom
-from ttd.flows.analysis import generate_tag_cluster_summary_markdown
-from ttd.flows.analysis import plot_tag_similarity_distribution
-from ttd.flows.analysis import plot_top_clusters_histogram
+from hex.flows.analysis import get_domain_table_data
+from hex.flows.analysis import filter_articles_by_clusters
+from hex.flows.analysis import plot_summary_distributions
+from hex.flows.analysis import save_plot
+from hex.flows.analysis import get_rouge_top_bottom
+from hex.flows.analysis import generate_tag_cluster_summary_markdown
+from hex.flows.analysis import plot_tag_similarity_distribution
+from hex.flows.analysis import plot_top_clusters_histogram
 
 def load_image(path: str) -> Image:
     with open(path, "rb") as f:

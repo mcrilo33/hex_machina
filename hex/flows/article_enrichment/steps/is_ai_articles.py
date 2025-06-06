@@ -2,10 +2,10 @@
 import logging
 import time
 
-from ttd.utils.print import safe_pretty_print
-from ttd.storage.ttd_storage import TTDStorage
-from ttd.models.loader import load_model_spec
-from ttd.flows.predict import predict
+from hex.utils.print import safe_pretty_print
+from hex.storage.hex_storage import HexStorage
+from hex.models.loader import load_model_spec
+from hex.flows.predict import predict
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ def execute(flow):
     }
 
     # Reload storage and lazy load articles
-    storage = TTDStorage(flow.config.get("db_path"))
+    storage = HexStorage(flow.config.get("db_path"))
     articles = storage.lazy_load(flow.articles)
 
     (flow.metrics["models_io"][model_spec_name]["inputs"],

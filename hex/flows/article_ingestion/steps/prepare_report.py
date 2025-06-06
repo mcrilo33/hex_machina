@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from metaflow import step, card, current
 from metaflow.cards import Markdown, Table, Image
 
-from ttd.flows.analysis import get_reference_domains, format_duration, \
+from hex.flows.analysis import get_reference_domains, format_duration, \
                                generate_domain_match_markdown, \
                                prepare_article_distribution_indexed_by_date, \
                                plot_article_distribution_indexed_by_date, \
@@ -16,8 +16,8 @@ from ttd.flows.analysis import get_reference_domains, format_duration, \
                                plot_error_distribution_by_domain_and_status, \
                                prepare_domain_counts, generate_domain_match_markdown, \
                                prepare_field_coverage, generate_field_coverage_markdown
-from ttd.flows.analysis import get_articles_with_no_error
-from ttd.storage.ttd_storage import TTDStorage
+from hex.flows.analysis import get_articles_with_no_error
+from hex.storage.hex_storage import HexStorage
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ def execute(flow):
         data=rows
     ))
 
-    storage = TTDStorage(flow.config.get("db_path"))
+    storage = HexStorage(flow.config.get("db_path"))
     articles = storage.get_obj_in_range(
         flow.articles_table,
         flow.first_id,

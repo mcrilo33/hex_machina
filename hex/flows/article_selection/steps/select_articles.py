@@ -4,11 +4,11 @@ import time
 from typing import Callable
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
-from ttd.utils.date import to_aware_utc
-from ttd.flows.analysis import filter_articles_by_clusters
+from hex.utils.date import to_aware_utc
+from hex.flows.analysis import filter_articles_by_clusters
 from copy import deepcopy
 
-from ttd.storage.ttd_storage import TTDStorage
+from hex.storage.hex_storage import HexStorage
 
 
 # Initialize logger at module level
@@ -149,7 +149,7 @@ def execute(flow):
         articles_for_cluster_scores, articles_for_selection,
         order_metric=linear_order_metric, n=flow.articles_limit
     )
-    storage = TTDStorage(flow.config.get("db_path"))
+    storage = HexStorage(flow.config.get("db_path"))
     selection = {
         "selection_time": str(datetime.now(timezone.utc)),
         "linearly_selected_articles_with_diversity": top_n_linearly_scored_articles_with_diversity,

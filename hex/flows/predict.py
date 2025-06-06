@@ -1,9 +1,9 @@
-""" Predict functions for the TTD pipeline. """
+""" Predict functions for the Hex pipeline. """
 import logging
 import time
 
-from ttd.utils.print import safe_pretty_print
-from ttd.models.loader import load_model_spec
+from hex.utils.print import safe_pretty_print
+from hex.models.loader import load_model_spec
 
 logger = logging.getLogger(__name__)
 

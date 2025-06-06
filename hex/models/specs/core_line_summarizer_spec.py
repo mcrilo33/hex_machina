@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 
-from ttd.models.base_spec import ModelSpec, PromptTemplateSpec
-from ttd.models.configs.open_router_config import OpenRouterConfig
+from hex.models.base_spec import ModelSpec, PromptTemplateSpec
+from hex.models.configs.open_router_config import OpenRouterConfig
 
 
 class CoreLineSummarizerInput(BaseModel):

@@ -1,6 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel, Field
-from ttd.models.base_spec import PromptTemplateSpec
+from hex.models.base_spec import PromptTemplateSpec
 
 
 class OpenRouterConfig(BaseModel):

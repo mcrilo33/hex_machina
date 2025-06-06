@@ -1,11 +1,11 @@
 from metaflow import FlowSpec, step, Parameter
 
-from ttd.flows.article_selection.steps.start import execute as start_step
-from ttd.flows.article_selection.steps.load_articles import execute as load_articles_step
-from ttd.flows.article_selection.steps.select_articles import execute as select_articles_step
-from ttd.flows.article_selection.steps.prepare_report \
+from hex.flows.article_selection.steps.start import execute as start_step
+from hex.flows.article_selection.steps.load_articles import execute as load_articles_step
+from hex.flows.article_selection.steps.select_articles import execute as select_articles_step
+from hex.flows.article_selection.steps.prepare_report \
     import execute as prepare_report_step
-from ttd.flows.article_enrichment.steps.end import execute as end_step
+from hex.flows.article_enrichment.steps.end import execute as end_step
 
 
 class ArticleSelectionFlow(FlowSpec):

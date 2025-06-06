@@ -1,5 +1,5 @@
-from ttd.models.base_spec import ModelSpec
-from ttd.models.configs.openai_embedding_config import OpenAIEmbeddingConfig
+from hex.models.base_spec import ModelSpec
+from hex.models.configs.openai_embedding_config import OpenAIEmbeddingConfig
 
 
 TAG_EMBEDDING_SPEC = ModelSpec(

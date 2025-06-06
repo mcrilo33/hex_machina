@@ -1,6 +1,6 @@
 import scrapy
 import logging
-from ttd.utils.date import to_aware_utc
+from hex.utils.date import to_aware_utc
 from abc import ABC, abstractmethod
 from typing import List
 

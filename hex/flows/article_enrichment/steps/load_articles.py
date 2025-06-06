@@ -2,9 +2,9 @@
 import logging
 import time
 from tinydb import Query
-from ttd.utils.date import to_aware_utc
+from hex.utils.date import to_aware_utc
 
-from ttd.storage.ttd_storage import TTDStorage
+from hex.storage.hex_storage import HexStorage
 
 # Initialize logger at module level
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ def execute(flow):
     start_time = time.time()
     flow.metrics.setdefault("step_start_times", {})[step_name] = start_time
 
-    storage = TTDStorage(flow.config.get("db_path"))
+    storage = HexStorage(flow.config.get("db_path"))
 
     articles = _load_query(storage, flow.articles_table, flow.parsed_date_threshold,
                            flow.articles_limit)

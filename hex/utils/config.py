@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 
-from ttd.utils.print import safe_pretty_print
+from hex.utils.print import safe_pretty_print
 
 DOTENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
 if not load_dotenv(DOTENV_PATH):

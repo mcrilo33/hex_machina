@@ -1,7 +1,7 @@
 import importlib.util
 from pathlib import Path
 
-from ttd.models.base_spec import ModelSpec
+from hex.models.base_spec import ModelSpec
 
 
 SPEC_DIR = Path(__file__).parent / "specs"
@@ -16,7 +16,7 @@ def load_model_specs_from_directory():
         if py_file.name.startswith("_"):
             continue
 
-        module_name = f"ttd.models.specs.{py_file.stem}"
+        module_name = f"hex.models.specs.{py_file.stem}"
         spec = importlib.util.spec_from_file_location(module_name, py_file)
         if not spec or not spec.loader:
             continue

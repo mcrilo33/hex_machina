@@ -1,9 +1,9 @@
 import logging
-from ttd.utils.date import to_aware_utc
+from hex.utils.date import to_aware_utc
 
-from ttd.storage.ttd_storage import TTDStorage
-from ttd.utils.config import load_config
-from ttd.utils.git import get_git_metadata
+from hex.storage.hex_storage import HexStorage
+from hex.utils.config import load_config
+from hex.utils.git import get_git_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ def execute(flow):
     flow.config = load_config()
     flow.git_metadata = get_git_metadata()
     flow.parsed_date_threshold = to_aware_utc(flow.date_threshold)
-    storage = TTDStorage(flow.config.get("db_path"))
+    storage = HexStorage(flow.config.get("db_path"))
     logger.info("✅ Database first connection established.")
     _clean_up_tables(storage, flow)
     

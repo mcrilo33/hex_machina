@@ -4,8 +4,8 @@ import time
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 
-from ttd.ingestion.rss_article import RSSArticleScraper, StealthRSSArticleScraper
-from ttd.storage.ttd_storage import TTDStorage
+from hex.ingestion.rss_article import RSSArticleScraper, StealthRSSArticleScraper
+from hex.storage.hex_storage import HexStorage
 
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ def execute(flow):
     flow.metrics.setdefault("step_start_times", {})[step_name] = start_time
     flow.metrics.setdefault("stored_count", {})[step_name] = {}
 
-    storage = TTDStorage(flow.config.get("db_path"))
+    storage = HexStorage(flow.config.get("db_path"))
 
     class CustomRSSArticleScraper(RSSArticleScraper):
         def __init__(self, *args, **kwargs):

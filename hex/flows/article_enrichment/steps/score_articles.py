@@ -2,7 +2,7 @@
 import logging
 import math
 from collections import Counter, defaultdict
-from ttd.storage.ttd_storage import TTDStorage
+from hex.storage.hex_storage import HexStorage
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ def execute(flow):
 
     articles = flow.replicated_articles
     cluster_counter = Counter()
-    storage = TTDStorage(flow.config.get("db_path"))
+    storage = HexStorage(flow.config.get("db_path"))
 
     # First pass: count how many times each cluster appears
     for article in articles:

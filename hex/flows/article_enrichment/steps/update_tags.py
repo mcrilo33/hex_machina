@@ -2,8 +2,8 @@
 import logging
 import time
 from tinydb import Query
-from ttd.storage.ttd_storage import TTDStorage
-from ttd.utils.print import safe_pretty_print
+from hex.storage.hex_storage import HexStorage
+from hex.utils.print import safe_pretty_print
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ def execute(flow):
         "errors": []
     }
 
-    storage = TTDStorage(flow.config.get("db_path"))
+    storage = HexStorage(flow.config.get("db_path"))
     TaggedArticle = Query()
     tagged_articles = storage.search("tagged_articles",
                                      TaggedArticle.original_table_name == flow.articles_table)

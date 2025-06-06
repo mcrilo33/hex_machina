@@ -2,7 +2,7 @@
 import logging
 import time
 
-from ttd.utils.print import safe_pretty_print
+from hex.utils.print import safe_pretty_print
 
 logger = logging.getLogger(__name__)
 
