@@ -1,0 +1,4 @@
+data_dir: /Users/mathieucrilout/Repos/train_tune_deploy/data
+db_path: /Users/mathieucrilout/Repos/train_tune_deploy/data/hex_tinydb.json
+feeds_path: /Users/mathieucrilout/Repos/train_tune_deploy/data/rss_feeds.txt
+feeds_stealth_path: /Users/mathieucrilout/Repos/train_tune_deploy/data/rss_feeds_stealth.txt

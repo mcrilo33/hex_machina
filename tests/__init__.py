@@ -1,2 +1,2 @@
 import sys
-sys.path.append('../ttd')
+sys.path.append('../hex')

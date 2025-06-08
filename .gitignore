@@ -1,4 +1,5 @@
 # Uninteresting project's data
+research
 research/data
 data
 
@@ -182,3 +183,15 @@ cython_debug/
 
 # Local test
 test.py
+hex/config.yaml
+
+# Metaflow
+.metaflow/
+
+# Cursor
+.cursor/
+.cursorignore
+
+.DS_Store
+report_*.html
+test_*.py

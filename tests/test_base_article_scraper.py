@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime
-from ttd.scraper.base_article import BaseArticleScraper
+from ttd.ingestion.base_article import BaseArticleScraper
 
 
 class DummyScraper(BaseArticleScraper):

@@ -14,3 +14,12 @@ tinydb==4.8.2
 pyyaml==6.0.2
 MainContentExtractor
 dotenv
+openai
+sklearn>=1.6.1
+graphviz
+evaluate
+rouge-score
+absl-py
+bert_score
+metaflow
+pillow

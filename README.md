@@ -1,85 +1,45 @@
-# 📢 Train, Tune, Deploy - AI Newsletter Service
+# <img src="./docs/images/hex-eye.png" alt="hex-eye" width="38" height="38"/> Hex Machina – AI Newsletter Service
 
-🚀 **TTD (Train, Tune, Deploy) is a free, AI-driven newsletter service** that automatically monitors AI research, blogs, and announcements, summarizes key insights, and delivers **high-quality, concise newsletters**.
+**Hex Machina is a free, AI-driven newsletter service** that automatically monitors AI research, blogs, and announcements, summarizes key insights, and delivers **high-quality, concise newsletters**.
 
-> AI News, Curated by AI.
+> AI News, Compiled by the Machine.
 
-## 📌 Overview
+## <img src="./docs/images/hex-eye.png" alt="hex-eye" width="28" height="28"/> Overview
 
-Keeping up with the **fast-moving AI landscape** is **time-consuming**. Traditional manual curation can’t scale.
+Keeping up with the **fast-moving AI landscape** is **time-consuming**. Traditional manual curation can’t scale.  
+**Hex Machina solves this with automated intelligence.**
 
-💡 **TTD automates AI news curation**, leveraging **state-of-the-art AI models** to:
+## ✔ Features & Scope
 
-✅ Fetch **AI-related articles** from trusted sources.
+**Ingestion** → Ingests articles from AI-related websites. <img src="./docs/images/hex-eye.png" alt="hex-eye" width="24" height="24"/>  
 
-✅ Tag, summarize, and classify posts for relevance.
+**Article Enrichment Flow** → Adds tags, summaries, etc... <img src="./docs/images/hex-eye.png" alt="hex-eye" width="24" height="24"/>  
 
-✅ Format the best insights into **a structured newsletter**.
+**Selection** → Selects most relevant items in an unsupervised way. <img src="./docs/images/hex-eye.png" alt="hex-eye" width="24" height="24"/>  
 
-🔎 **The goal? Effortless, high-quality AI updates in one place.**
 
-## 📜 Background
+**Newsletter Generator** → Compiles and formats weekly updates. (Not yet implemented)  
 
-Most AI newsletters today are either:
-
-❌ **Too limited** → They miss key developments.
-
-❌ **Too time-consuming**.
-
-🧠 **TTD solves this** using **AI-driven automation**, ensuring:
-
-🔹 **Comprehensive coverage** of AI research.
-
-🔹 **Timely and relevant content** filtering.
-
-🔹 **Automatic newsletter generation** without human intervention.
-
-## ✅ Features & Scope
-
-### ✔ In-Scope
-
-✔ **Scraper** → Fetches articles from AI-related websites.
-
-✔ **Enricher** → Adds tags, reading time, complexity, summaries.
-
-✔ **Classifier** → Selects most relevant items and filters out noise.
-
-✔ **Newsletter Generator** → Compiles and formats daily updates.
-
-✔ **Orchestration Script** → Runs the full pipeline automatically.
-
-### ❌ Out of Scope (MVP)
-
-🚫 **Social media sources** (Twitter, LinkedIn, etc.).
-
-🚫 **Personalized content filtering** (future enhancement).
-
-🚫 **Paid content sources**. *But no worries, there are a lot of very high quality publicly available content*.
-
-### 📌 Key Components:
-
-- Scraper 🕵️‍♂️ → Fetches AI articles hourly from public sources.
-- Enricher 🤖 → Adds tags, reading time, and multi-level summaries.
-- Classifier 🏆 → Scores relevance & filters bad items.
-- Newsletter Generator 📝 → Formats top AI stories into a digest.
-- Orchestrator 🔄 → Runs the entire pipeline automatically.
+**Orchestration Script** → Runs the full pipeline automatically. (Not yet implemented)  
 
 ## 🏗 Technology Stack
 
-| Component | Technology |
-| --- | --- |
-| Scraping            | Scrapy                       |
-| Database            | TinyDB                       |
-| Tagging & NLP       | Hugging Face / OpenAI API    |
-| Summarization       | Transformer-based models     |
-| Hosting             | Beehiv                       |
-| Automation          | Cron Jobs / Python Scripts   |
+| Component          | Technology                   |
+|--------------------|------------------------------|
+| Scraping           | Scrapy                       |
+| Database           | TinyDB                       |
+| LLMs               | OpenRouter / OpenAI          |
+| Tagging & NLP      | Hugging Face / OpenAI        |
+| Workflow           | Metaflow                     |
+| Hosting            | Beehiiv                      |
+| Ochestration       | Zapier                       |
+
 
 ## 📚 Documentation
 
-[TTD Newsletter Documentation](docs/README.md)
+[Hex Machina Documentation](docs/README.md)
 
-##  Contact & Support
+## 💬 Contact & Support
 
 For questions or contributions, contact **Mathieu Crilout** at <mathieu.crilout@gmail.com>.
 
@@ -89,5 +49,5 @@ If you find this useful, give it a ⭐ on **GitHub!** 😊
 
 ## 📜 License
 
-This software is proprietary and owned by **Mathieu Crilout**.  
-Unauthorized use, distribution, or modification is prohibited.  
+The code is public, you can look at it, but this software is proprietary and owned by **Mathieu Crilout**.  
+Unauthorized use, distribution, or modification is prohibited.

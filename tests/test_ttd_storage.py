@@ -1,148 +1,262 @@
-import shutil
 import pytest
-import copy
-from unittest.mock import MagicMock
+from datetime import datetime
+from pathlib import Path
+import tempfile
+import shutil
+from unittest.mock import patch, MagicMock
+
 from ttd.storage.ttd_storage import TTDStorage
 
 
 @pytest.fixture
-def temp_storage(tmp_path_factory):
-    tmp_path = tmp_path_factory.mktemp("data")
-    db_path = tmp_path / "db.json"
+def temp_dir():
+    """Create a temporary directory for testing."""
+    tmp_dir = tempfile.mkdtemp()
+    yield tmp_dir
+    shutil.rmtree(tmp_dir)
+
+
+@pytest.fixture
+def storage(temp_dir):
+    """Create a TTDStorage instance for testing."""
+    db_path = Path(temp_dir) / "test.json"
     storage = TTDStorage(str(db_path))
     yield storage
-    shutil.rmtree(tmp_path, ignore_errors=True)
 
 
-@pytest.fixture
-def dummy_article():
-    return {
-        "url": "http://example.com",
-        "html_content": "<html><body>Hello</body></html>",
-        "text_content": "Hello"
-    }
+def test_init(temp_dir):
+    """Test initialization of TTDStorage."""
+    db_path = Path(temp_dir) / "test.json"
+    storage = TTDStorage(str(db_path))
+
+    assert storage.db_path == str(db_path)
+    assert Path(storage.artifacts.base_path) == Path(temp_dir) / "artifacts"
 
 
-@pytest.fixture
-def dummy_model():
-    return {
-        "name": "mock_model",
-        "config": {
-            "openai": {
-                "api_key_env_var": "FAKE_API_KEY",
-                "base_url": "http://localhost",
-                "model": "gpt-3"
+@patch('ttd.storage.ttd_storage.datetime')
+def test_save_single_object(mock_datetime, storage):
+    """Test saving a single object."""
+    mock_datetime.utcnow.return_value = datetime(2023, 1, 1)
+    mock_timestamp = "2023-01-01T00:00:00"
+
+    with patch.object(storage.artifacts, 'save_large_fields') as mock_save_large:
+        mock_save_large.return_value = {"name": "test", "processed": True}
+
+        with patch.object(storage, 'insert') as mock_insert:
+            mock_insert.return_value = [1]
+
+            result = storage.save("articles", {"name": "test"})
+
+            mock_save_large.assert_called_once_with(
+                {"name": "test", "table_name": "articles",
+                 "created_at": mock_timestamp},
+                table_name="articles",
+                timestamp=mock_timestamp
+            )
+
+            mock_insert.assert_called_once_with(
+                "articles", [{"name": "test", "processed": True}]
+            )
+            assert result == ["1"]
+
+
+@patch('ttd.storage.ttd_storage.datetime')
+def test_save_multiple_objects(mock_datetime, storage):
+    """Test saving multiple objects."""
+    mock_datetime.utcnow.return_value = datetime(2023, 1, 1)
+
+    with patch.object(storage.artifacts, 'save_large_fields') as mock_save_large:
+        mock_save_large.side_effect = lambda obj, **kwargs: {**obj, "processed": True}
+
+        with patch.object(storage, 'insert') as mock_insert:
+            mock_insert.return_value = [1, 2]
+
+            result = storage.save("articles", [{"name": "test1"}, {"name": "test2"}])
+
+            assert mock_save_large.call_count == 2
+            assert mock_insert.call_count == 1
+            assert result == ["1", "2"]
+
+
+@patch('ttd.storage.ttd_storage.datetime')
+def test_save_model(mock_datetime, storage):
+    """Test saving a model object with special handling."""
+    mock_datetime.utcnow.return_value = datetime(2023, 1, 1)
+    mock_timestamp = "2023-01-01T00:00:00"
+
+    with patch.object(storage.artifacts, 'save_large_fields') as mock_save_large:
+        mock_save_large.return_value = {"name": "model1", "processed": True}
+
+        with patch.object(storage, 'insert') as mock_insert:
+            mock_insert.return_value = [1]
+
+            result = storage.save("models", {"name": "model1"})
+
+            model_obj = {
+                "name": "model1", 
+                "table_name": "models", 
+                "created_at": mock_timestamp,
+                "last_updated": mock_timestamp
             }
-        },
-        "input_format": "text_content",
-        "output_format": "text"
-    }
+
+            mock_save_large.assert_called_once_with(
+                model_obj,
+                table_name="models",
+                timestamp=mock_timestamp
+            )
+
+            assert result == ["1"]
 
 
-@pytest.fixture
-def storage_with_mock_model_and_article(tmp_path_factory, dummy_model, dummy_article):
-    tmp_path = tmp_path_factory.mktemp("data")
-    storage = TTDStorage(str(tmp_path / "db.json"))
+@patch('ttd.storage.ttd_storage.datetime')
+def test_update_single_object(mock_datetime, storage):
+    """Test updating a single object."""
+    mock_datetime.utcnow.return_value = datetime(2023, 1, 1)
+    mock_timestamp = "2023-01-01T00:00:00"
 
-    # Add dummy model with mocked instance
-    mock_model_instance = MagicMock()
-    mock_model_instance.predict = MagicMock(return_value="mock prediction")
-    storage.save_model(dummy_model)
+    with patch.object(storage.artifacts, 'save_large_fields') as mock_save_large:
+        mock_save_large.return_value = \
+            {"doc_id": "1", "name": "updated", "processed": True}
 
-    model = storage.get_model_by_name("mock_model")
-    model["model_instance"] = mock_model_instance
-    model["doc_id"] = model.doc_id
+        with patch.object(storage, 'update_single') as mock_update:
+            mock_update.return_value = 1
 
-    # Add dummy article
-    storage.save_articles([dummy_article])
-    article = storage.get_table("articles").all()[0]
-    article.doc_id = article.doc_id
+            result = storage.update("articles", {"doc_id": "1", "name": "updated"})
 
-    yield storage, model, article
-    shutil.rmtree(tmp_path, ignore_errors=True)
+            expected_obj = {
+                "doc_id": "1", 
+                "name": "updated", 
+                "last_updated": mock_timestamp
+            }
 
+            mock_save_large.assert_called_once_with(
+                expected_obj,
+                table_name="articles",
+                timestamp=mock_timestamp
+            )
 
-##############################################################################
-# Test Article Handling
-##############################################################################
-
-class TestArticles:
-    def test_save_and_get_article(self, temp_storage, dummy_article):
-        temp_storage.save_articles([copy.deepcopy(dummy_article)])
-        saved = temp_storage.get_table("articles").all()[0]
-
-        assert "html_content_path" in saved
-        assert "text_content_path" in saved
-        assert saved["url"] == dummy_article["url"]
-
-        html = temp_storage.from_article_get_html(saved)
-        text = temp_storage.from_article_get_text(saved)
-
-        assert html == dummy_article["html_content"]
-        assert text == dummy_article["text_content"]
+            mock_update.assert_called_once()
+            assert result == ["1"]
 
 
-##############################################################################
-# Test Model Lifecycle
-##############################################################################
+@patch('ttd.storage.ttd_storage.datetime')
+def test_update_multiple_objects(mock_datetime, storage):
+    """Test updating multiple objects."""
+    mock_datetime.utcnow.return_value = datetime(2023, 1, 1)
 
-class TestModels:
-    def test_model_lifecycle(self, temp_storage, dummy_model, dummy_article):
-        # Patch loading logic
-        temp_storage.model_manager.load_model = MagicMock(
-            return_value=MagicMock(predict=lambda x: f"Predicted: {x}")
+    with patch.object(storage.artifacts, 'save_large_fields') as mock_save_large:
+        mock_save_large.side_effect = lambda obj, **kwargs: {**obj, "processed": True}
+
+        with patch.object(storage, 'update_single') as mock_update:
+            mock_update.side_effect = [1, 2]
+
+            result = storage.update("articles", [
+                {"doc_id": "1", "name": "updated1"},
+                {"doc_id": "2", "name": "updated2"}
+            ])
+
+            assert mock_save_large.call_count == 2
+            assert mock_update.call_count == 2
+            assert result == ["1", "2"]
+
+
+def test_get_all(storage):
+    """Test retrieving all records from a table."""
+    mock_record1 = MagicMock()
+    mock_record1.doc_id = 1
+    mock_record1.__getitem__.side_effect = \
+        lambda key: "value1" if key == "name" else None
+
+    mock_record2 = MagicMock()
+    mock_record2.doc_id = 2
+    mock_record2.__getitem__.side_effect = \
+        lambda key: "value2" if key == "name" else None
+
+    with patch('ttd.storage.base_storage.TinyDBStorageService.get_table') \
+            as mock_get_table:
+        mock_table = MagicMock()
+        mock_table.__iter__.return_value = [mock_record1, mock_record2]
+        mock_get_table.return_value = mock_table
+
+        result = storage.get_all("articles")
+
+        mock_get_table.assert_called_once_with("articles")
+        assert len(result) == 2
+        assert result[0]["doc_id"] == "1"
+        assert result[1]["doc_id"] == "2"
+
+
+def test_search(storage):
+    """Test searching for records in a table."""
+    mock_record = MagicMock()
+    mock_record.doc_id = 1
+    mock_record.__getitem__.side_effect = lambda key: "test" if key == "name" else None
+
+    with patch('ttd.storage.base_storage.TinyDBStorageService.get_table') \
+            as mock_get_table:
+        mock_table = MagicMock()
+        mock_table.search.return_value = [mock_record]
+        mock_get_table.return_value = mock_table
+
+        query = MagicMock()  # Could be a Query object from TinyDB
+        result = storage.search("articles", query)
+
+        mock_get_table.assert_called_once_with("articles")
+        mock_table.search.assert_called_once_with(query)
+        assert len(result) == 1
+        assert result[0]["doc_id"] == "1"
+
+
+def test_lazy_load(storage):
+    """Test lazy loading of fields."""
+    with patch.object(storage.artifacts, 'lazy_load_fields') as mock_lazy_load:
+        mock_lazy_load.side_effect = lambda obj: {**obj, "lazy_loaded": True}
+
+        result = storage.lazy_load([{"name": "test1"}, {"name": "test2"}])
+
+        assert mock_lazy_load.call_count == 2
+        assert all(item["lazy_loaded"] for item in result)
+
+
+def test_save_or_update_new(storage):
+    """Test save_or_update for new objects."""
+    with patch.object(storage, 'save') as mock_save:
+        mock_save.return_value = ["new_id"]
+
+        result = storage.save_or_update("articles", {"name": "new"})
+
+        mock_save.assert_called_once_with("articles", {"name": "new"})
+        assert result == ["new_id"]
+
+
+def test_save_or_update_existing(storage):
+    """Test save_or_update for existing objects."""
+    with patch.object(storage, 'update') as mock_update:
+        mock_update.return_value = ["1"]
+
+        result = storage.save_or_update("articles", {"doc_id": "1", "name": "updated"})
+
+        mock_update.assert_called_once_with(
+            "articles", {"doc_id": "1", "name": "updated"}
         )
+        assert result == ["1"]
 
-        temp_storage.save_model(dummy_model)
-        model = temp_storage.load_model_by_name("mock_model")
-        assert "model_instance" in model
 
-        temp_storage.save_articles([dummy_article])
-        stored_article = temp_storage.get_table("articles").all()[0]
+def test_save_or_update_mixed(storage):
+    """Test save_or_update with a mix of new and existing objects."""
+    with patch.object(storage, 'save') as mock_save, \
+         patch.object(storage, 'update') as mock_update:
 
-        predictions = temp_storage.run_model_on_articles(
-            model,
-            [stored_article],
-            save=False
+        mock_save.return_value = ["new_id"]
+        mock_update.return_value = ["1"]
+
+        result = storage.save_or_update("articles", [
+            {"name": "new"},
+            {"doc_id": "1", "name": "updated"}
+        ])
+
+        mock_save.assert_called_once_with("articles", {"name": "new"})
+        mock_update.assert_called_once_with(
+            "articles", {"doc_id": "1", "name": "updated"}
         )
-
-        assert len(predictions) == 1
-        assert predictions[0]["output"] == "Predicted: Hello"
-
-
-##############################################################################
-# Test Predictions
-##############################################################################
-
-class TestPredictions:
-    def test_run_model_on_articles_and_store_predictions(
-        self,
-        storage_with_mock_model_and_article
-    ):
-        storage, model, article = storage_with_mock_model_and_article
-
-        predictions = storage.run_model_on_articles(model, [article], save=True)
-        assert len(predictions) == 1
-
-        pred = predictions[0]
-        assert pred["output"] == "mock prediction"
-        assert pred["article_id"] == article.doc_id
-        assert pred["model_id"] == model["doc_id"]
-        assert pred["task_type"] == model["output_format"]
-        assert isinstance(pred["execution_time"], int)
-        assert "created_at" in pred
-
-        # DB check
-        stored_preds = storage.get_table("predictions").all()
-        assert len(stored_preds) == 1
-        assert stored_preds[0]["output"] == "mock prediction"
-
-    def test_run_model_on_articles_without_saving(
-        self,
-        storage_with_mock_model_and_article
-    ):
-        storage, model, article = storage_with_mock_model_and_article
-
-        predictions = storage.run_model_on_articles(model, [article], save=False)
-        assert len(predictions) == 1
-        assert storage.get_table("predictions").all() == []
+        assert result == ["new_id", "1"]
