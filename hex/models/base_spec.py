@@ -2,7 +2,7 @@ from typing import Any, Optional, Type, TypeVar
 from pydantic import BaseModel, Field, model_validator
 
 from hex.utils.config import load_path_resolver
-from hex.models.providers.openai_model import OpenAIModel
+from hex.models.providers.openai_model import OpenAIModel, OpenAIImageModel
 from hex.models.providers.openai_embedding import OpenAIEmbedding
 
 InputType = TypeVar('InputType', bound=BaseModel)
@@ -22,7 +22,7 @@ def extract_nested_fields_from_schema(schema: type(BaseModel), inputs: dict) -> 
         except (KeyError, TypeError):
             raise ValueError(
                 f"Field '{field}' not found in input data. "
-                f"Expected structure: {model_class.__fields__}"
+                f"Expected structure: {schema.__fields__}"
             )
     return result
 
@@ -86,6 +86,9 @@ class ModelSpec(BaseSpec):
 
         elif self.provider == "openai_embedding":
             self._loaded_model = OpenAIEmbedding(self.config)
+
+        elif self.provider == "openai_image":
+            self._loaded_model = OpenAIImageModel(self.config)
 
         else:
             raise NotImplementedError(

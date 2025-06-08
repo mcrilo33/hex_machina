@@ -34,7 +34,7 @@ class ArticleSelectionFlow(FlowSpec):
 
     clean_tables = Parameter('clean_tables',
                                 help=('Clean tables '
-                                      '(selections, selected_articles)'),
+                                      '(selected_articles_table)'),
                                 default=False)
 
     selected_articles_table = Parameter('selected_articles_table',

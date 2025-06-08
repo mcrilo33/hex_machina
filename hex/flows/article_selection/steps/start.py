@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 def _clean_up_tables(storage, flow):
     """ Clean up tables for a fresh run. """
     if flow.clean_tables:
-        storage.db.drop_table("selections")
         storage.db.drop_table(flow.selected_articles_table)
         logger.info("✅ Database cleaned.")
     else:

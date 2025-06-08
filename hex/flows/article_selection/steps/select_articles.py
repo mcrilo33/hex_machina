@@ -120,7 +120,35 @@ def select_top_articles_with_diversity(
         cluster_scores[max_item["clusters_names_in_order_added"][0]] = 0
         articles = compute_article_cluster_scores(articles, cluster_scores, order_metric=order_metric)
     
-    return selected_articles
+    return cluster_scores, selected_articles
+
+def generate_ingestion_summary(articles) -> str:
+    """
+    Generates a summary sentence about the number of ingested articles,
+    unique sources, and estimated reading time saved.
+    """
+    num_articles = len(articles)
+    unique_sources = set()
+    total_reading_time_min = 0
+
+    for article in articles:
+        source = article.get("url_domain", "N/A")
+        if source != "N/A":
+            unique_sources.add(source)
+        
+        # Use the same reading time estimation logic as format_article_brief
+        text_length = article.get("text_content_length", 0)
+        reading_time_min = max(5, int(text_length / 5 / 180)) if text_length else 0
+        total_reading_time_min += reading_time_min
+
+    num_sources = len(unique_sources)
+    total_reading_time_hours = round(total_reading_time_min / 60)
+
+    return (
+        f"For this digest it ingested more than {num_articles} articles from "
+        f"{num_sources} sources (saving you {total_reading_time_hours} hours of "
+        f"reading)."
+    )
 
 def execute(flow):
     """Select articles"""
@@ -145,14 +173,15 @@ def execute(flow):
     ]
     logger.info("✅ Scoring clusters...")
 
-    top_n_linearly_scored_articles_with_diversity = select_top_articles_with_diversity(
-        articles_for_cluster_scores, articles_for_selection,
-        order_metric=linear_order_metric, n=flow.articles_limit
-    )
+    cluster_scores, top_n_linearly_scored_articles_with_diversity = \
+        select_top_articles_with_diversity(articles_for_cluster_scores, articles_for_selection,
+                                           order_metric=linear_order_metric, n=flow.articles_limit)
     storage = HexStorage(flow.config.get("db_path"))
     selection = {
         "selection_time": str(datetime.now(timezone.utc)),
+        "clusters_scores": cluster_scores,
         "linearly_selected_articles_with_diversity": top_n_linearly_scored_articles_with_diversity,
+        "ingestion_summary": generate_ingestion_summary(articles_for_selection)
     }
 
     for article in top_n_linearly_scored_articles_with_diversity:
@@ -162,7 +191,8 @@ def execute(flow):
                 "original_doc_id": article["doc_id"]
             }
         )
-    storage.save("selections", selection)
+    doc_id = storage.save("selections", selection)[0]
+    selection["doc_id"] = doc_id
     flow.selection = selection
     total_time = time.time() - start_time
     flow.metrics.setdefault("step_duration", {})[step_name] = total_time

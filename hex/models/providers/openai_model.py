@@ -61,3 +61,46 @@ class OpenAIModel():
                 "total_tokens": response.usage.total_tokens,
             },
         }
+
+
+class OpenAIImageModel:
+    """A class to represent an OpenAI image generation model."""
+    def __init__(self, config: BaseModel):
+        self.prompt = PromptTemplate(config.prompt_spec)
+        self.client = OpenAI(api_key=config.api_key)
+        self.config = config
+        print(f"OpenAIImageModel initialized with config: {config}")
+        image_params = {}
+        for k in ["model", "n", "size", "quality", "response_format"]:
+            image_params[k] = getattr(config, k, None)
+        self.image_params = image_params
+
+    def predict(self, input_data: dict) -> dict:
+        params = self.image_params.copy()
+        prompt_str = self.prompt(**input_data)
+        params["prompt"] = prompt_str
+        response = self.client.images.generate(**params)
+        if hasattr(response, 'error'):
+            provider = response.error.get(
+                "metadata", {}
+            ).get('provider_name', 'Unknown provider')
+            raise ValueError(
+                f"PROVIDER [[{provider}]]\n== Error {response.error.get('code')}: " +
+                f"{response.error.get('message')}"
+            )
+        images_b64 = [img.b64_json for img in response.data]
+        return {
+            "output": images_b64,
+            "metadata": {
+                "model": params.get(
+                    "model",
+                    self.config.model_name if hasattr(
+                        self.config, "model_name"
+                    ) else None
+                ),
+                "n": params.get("n", 1),
+                "size": params.get("size"),
+                "quality": params.get("quality"),
+                "response_format": params.get("response_format"),
+            },
+        }

@@ -2,8 +2,8 @@
 import logging
 import time
 from tinydb import Query
-from hex.utils.date import to_aware_utc
 
+from hex.utils.date import to_aware_utc
 from hex.storage.hex_storage import HexStorage
 
 # Initialize logger at module level
