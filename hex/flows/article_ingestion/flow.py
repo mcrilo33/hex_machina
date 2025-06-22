@@ -22,7 +22,8 @@ class ArticleIngestionFlow(FlowSpec):
 
     articles_limit = Parameter('articles_limit',
                                help='Maximum number of articles to load',
-                               default=None)
+                               default=None,
+                               type=int)
 
     date_threshold = Parameter('date_threshold',
                                help='Keep articles published after this date',

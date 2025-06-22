@@ -215,7 +215,7 @@ class RSSArticleScraper(BaseArticleScraper):
             "error": error_msg,
             "duration": int(elapsed_time)
         }
-        self.store(self.normalized)
+        self.store([self.normalized])
         self.stored_count += 1
 
     def parse(self, response):
