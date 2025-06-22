@@ -14,9 +14,11 @@ from hex.storage.hex_storage import HexStorage
 # Initialize logger at module level
 logger = logging.getLogger(__name__)
 
+
 def linear_order_metric(order: int) -> float:
     """Compute order metric based on the position in the list."""
     return 1 / (order + 1)  # Order starts at 0
+
 
 def exponential_order_metric(decay: float = 0.5) -> Callable[[int], float]:
     """
@@ -27,13 +29,16 @@ def exponential_order_metric(decay: float = 0.5) -> Callable[[int], float]:
     :return: A function that maps order (int) -> float
     """
     assert 0 < decay < 1, "Decay must be between 0 and 1"
-    
+
     def metric(order: int) -> float:
         return decay ** order
 
     return metric
 
-def compute_cluster_scores(articles: list, order_metric: Callable = linear_order_metric) -> dict:
+
+def compute_cluster_scores(
+    articles: list, order_metric: Callable = linear_order_metric
+) -> dict:
     """Compute cluster scores based on the number of articles it belongs to."""
 
     key = 'clusters_names_in_order_added'
@@ -41,9 +46,11 @@ def compute_cluster_scores(articles: list, order_metric: Callable = linear_order
     for article in articles:
         if key in article and article[key]:
             cluster_counter.update(article[key])
-    
+
     # Only keep clusters that appear at least 2 times
-    valid_clusters = {cluster for cluster, count in cluster_counter.items() if count >= 2}
+    valid_clusters = {
+        cluster for cluster, count in cluster_counter.items() if count >= 2
+    }
 
     # Compute order weights (early tag = bigger weight)
     cluster_order_scores = defaultdict(list)
@@ -61,7 +68,10 @@ def compute_cluster_scores(articles: list, order_metric: Callable = linear_order
 
     return cluster_scores
 
-def compute_article_cluster_scores(articles: list, cluster_scores: dict, order_metric: Callable = linear_order_metric) -> dict:
+
+def compute_article_cluster_scores(
+    articles: list, cluster_scores: dict, order_metric: Callable = linear_order_metric
+) -> dict:
     """Compute article scores based on the clusters they belong to."""
 
     key = 'clusters_names_in_order_added'
@@ -75,12 +85,16 @@ def compute_article_cluster_scores(articles: list, cluster_scores: dict, order_m
         article["clusters_score"] = sum(scores)
     return articles
 
+
 def get_top_n_articles(scored_articles, n=5):
     """Return the top n articles sorted by their score descending."""
     scored_articles = deepcopy(scored_articles)
-    sorted_articles = sorted(scored_articles, key=lambda x: x["clusters_score"], reverse=True)
-    
+    sorted_articles = sorted(
+        scored_articles, key=lambda x: x["clusters_score"], reverse=True
+    )
+
     return sorted_articles[:n]
+
 
 def select_top_articles_with_diversity(
     articles_for_cluster_scores: list,
@@ -96,12 +110,16 @@ def select_top_articles_with_diversity(
     :param n: Number of top articles to select.
     :return: List of selected articles.
     """
-    
+
     articles = deepcopy(articles_for_selection)
 
     # Compute initial cluster scores
-    cluster_scores = compute_cluster_scores(articles_for_cluster_scores, order_metric=order_metric)
-    articles = compute_article_cluster_scores(articles, cluster_scores, order_metric=order_metric)
+    cluster_scores = compute_cluster_scores(
+        articles_for_cluster_scores, order_metric=order_metric
+    )
+    articles = compute_article_cluster_scores(
+        articles, cluster_scores, order_metric=order_metric
+    )
     # Select top N articles based on cluster scores
     selected_articles = []
     title_already_selected = set()
@@ -118,9 +136,12 @@ def select_top_articles_with_diversity(
         # Remove best cluster of the selected item from the cluster scores
         # to ensure diversity
         cluster_scores[max_item["clusters_names_in_order_added"][0]] = 0
-        articles = compute_article_cluster_scores(articles, cluster_scores, order_metric=order_metric)
-    
+        articles = compute_article_cluster_scores(
+            articles, cluster_scores, order_metric=order_metric
+        )
+
     return cluster_scores, selected_articles
+
 
 def generate_ingestion_summary(articles) -> str:
     """
@@ -135,10 +156,13 @@ def generate_ingestion_summary(articles) -> str:
         source = article.get("url_domain", "N/A")
         if source != "N/A":
             unique_sources.add(source)
-        
+
         # Use the same reading time estimation logic as format_article_brief
         text_length = article.get("text_content_length", 0)
-        reading_time_min = max(5, int(text_length / 5 / 180)) if text_length else 0
+        if text_length:
+            reading_time_min = max(5, int(text_length / 5 / 180))
+        else:
+            reading_time_min = 0
         total_reading_time_min += reading_time_min
 
     num_sources = len(unique_sources)
@@ -149,6 +173,7 @@ def generate_ingestion_summary(articles) -> str:
         f"{num_sources} sources (saving you {total_reading_time_hours} hours of "
         f"reading)."
     )
+
 
 def execute(flow):
     """Select articles"""
@@ -171,21 +196,28 @@ def execute(flow):
         if to_aware_utc(article["published_date"]) >= flow.parsed_date_threshold
         and "clusters_names_in_order_added" in article
     ]
+    logger.info(f"✅ {len(articles_for_cluster_scores)} articles for cluster scores")
+    logger.info(f"✅ {len(articles_for_selection)} articles for selection")
     logger.info("✅ Scoring clusters...")
 
     cluster_scores, top_n_linearly_scored_articles_with_diversity = \
-        select_top_articles_with_diversity(articles_for_cluster_scores, articles_for_selection,
-                                           order_metric=linear_order_metric, n=flow.articles_limit)
+        select_top_articles_with_diversity(
+            articles_for_cluster_scores, articles_for_selection,
+            order_metric=linear_order_metric, n=flow.articles_limit
+        )
     storage = HexStorage(flow.config.get("db_path"))
     selection = {
         "selection_time": str(datetime.now(timezone.utc)),
         "clusters_scores": cluster_scores,
-        "linearly_selected_articles_with_diversity": top_n_linearly_scored_articles_with_diversity,
+        "linearly_selected_articles_with_diversity": (
+            top_n_linearly_scored_articles_with_diversity
+        ),
         "ingestion_summary": generate_ingestion_summary(articles_for_selection)
     }
 
     for article in top_n_linearly_scored_articles_with_diversity:
-        storage.save(flow.selected_articles_table, 
+        storage.save(
+            flow.selected_articles_table,
             {
                 "original_table_name": flow.articles_table,
                 "original_doc_id": article["doc_id"]

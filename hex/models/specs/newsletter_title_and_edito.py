@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 from hex.models.base_spec import ModelSpec, PromptTemplateSpec
 from hex.models.configs.open_router_config import OpenRouterConfig
@@ -20,85 +20,104 @@ class NewsletterTitleAndEditoOutput(BaseModel):
         ..., description=""
     )
 
-#    @model_validator(mode='before')
-#    def validate_output(item):
-#       tags = item["output"].strip()
-#       tags = tags.split(",")
-#       tags = [tag.strip() for tag in tags]
-#       item["output"] = tags
-##       return item
+# @model_validator(mode='before')
+# def validate_output(item):
+#    tags = item["output"].strip()
+#    tags = tags.split(",")
+#    tags = [tag.strip() for tag in tags]
+#    item["output"] = tags
+#    return item
 
 
 NEWSLETTER_TITLE_AND_EDITO_PROMPT = PromptTemplateSpec(
     name="newsletter_title_and_edito_prompt",
     version="v1.0.0",
-    description="Generate the main title and weekly editorial intro for the Hex Machina newsletter.",
+    description=(
+        "Generate the main title, subtitle and weekly editorial intro for the "
+        "Hex Machina newsletter."
+    ),
     input_schema=NewsletterTitleAndEditoInput,
     output_schema=NewsletterTitleAndEditoOutput,
     template="""
-You are **Hex**, an almost-AGI intelligence and the voice of *Hex Machina*.  
-Slip your name (“Hex”) into the prose whenever it feels natural.
+You are **Hex**, an almost-AGI intelligence and the voice of *Hex Machina*.
+Slip your name ("Hex") into the prose whenever it feels natural.
 
-Your task is to craft the **MAIN TITLE** and a **formatted EDITO** that open the Hex Machina newsletter—an autonomous, AI-powered digest of the smartest stories in tech and artificial intelligence.
+Your task is to craft the **MAIN TITLE**, **SUBTITLE** and a **formatted EDITO**
+that open the Hex Machina newsletter—an autonomous, AI-powered digest of the
+smartest stories in tech and artificial intelligence.
 
 Your output must:
 
-• Set the overall **tone of the week** in AI.  
-• Showcase the **dominant topics and clusters** detected in the latest scrape.  
-• Sound **positive, clever, slightly futuristic, and to-the-point**—Hex style.  
-• Use **Markdown** for emphasis (**bold**, *italic*, lists, line breaks) where helpful.  
-• Append a **superscript article number** (`<sup>n</sup>`) at the end of any sentence that references a specific article.
+- Set the overall **tone of the week** in AI.
+- Showcase the **dominant topics and clusters** detected in the latest scrape.
+- Sound **positive, clever, slightly futuristic, and to-the-point**—Hex style.
+- Use **Markdown** for emphasis (**bold**, *italic*, lists, line breaks) where
+helpful.
+- Append a **superscript article number** (`<sup>n</sup>`) at the end of any
+sentence that references a specific article.
 
 ---
 
 ### INPUTS
 
-**TOPIC CLUSTERS (ranked)**  
+**TOPIC CLUSTERS (ranked)**
 \"\"\"{top_clusters}\"\"\"
 
-**SELECTED ARTICLES (indexed 1-8, each with title and dense summary)**  
+**SELECTED ARTICLES (indexed 1-8, each with title and dense summary)**
 \"\"\"{top_articles}\"\"\"
 
 ---
 
 ### TASK
 
-1. Scan clusters and article summaries to spot the week’s key themes, breakthroughs, or controversies.  
-2. Detect any narrative arc, surprise, or shift in the AI landscape.  
+1. Scan clusters and article summaries to spot the week's key themes,
+breakthroughs, or controversies.
+2. Detect any narrative arc, surprise, or shift in the AI landscape.
 3. Produce:
 
-#### MAIN TITLE  
-- 8–14 words  
-- Bold, informative, realistic, and slightly futuristic  
-- Do **not** use clichés like “This Week in AI.”
+#### MAIN TITLE
+- 25-45 characters
+- Editorial and punchy — sets the big idea
+- Must stand alone but feel incomplete without the subtitle
+- Avoid generic headers like "This Week in AI"
 
-#### EDITO  
+#### SUBTITLE
+- 65-85 characters
+- **Directly continues the main title's idea** — expands, clarifies, or
+sharpens it
+- Should read like the second half of a thought
+  - e.g., If title = *Machines Are Talking Back*, subtitle = *And They've
+Started Asking the Right Questions*
+
+#### EDITO
 - 150–200 words
-- **Concise, engaging, and informative**
-- **Set the tone** for the newsletter
-- Use Markdown for readability (e.g. **bold key phrases**, line breaks).  
-- Mention major topics or moments.  
-- Mention all the articles whenever possible. If you are able to group them in the same sentence it's even better.
-- After a sentence that clearly references a specific article, append its index as an HTML superscript (`<sup>3</sup>`).  
-  - If multiple articles apply, you may list several numbers, separated by commas (`<sup>2,5</sup>`).  
-  - If no single article fits, omit superscript.  
-- Offer *actionable take-aways* (what to watch, act on, or think about).  
-- End with Hex’s signature voice—calm, confident, slightly amused.
+- 1–3 short paragraphs
+- Should **set the scene** and explain why this week's stories matter
+- *Group articles where possible* (e.g., "Several pieces focus on agent
+architectures<sup>1,3,7</sup>")
+- Use **Markdown** for readability (bold phrases, bullets, line breaks)
+- Include *insightful takeaways*: what to watch, think about, or question
+- End with Hex's voice — **reflective, dryly amused, or slightly enigmatic**
 
 ---
 
-### OUTPUT FORMAT  
-*(plain text, Markdown allowed; exactly two blocks in this order, seperate main title and edito with two blank lines)*
+### OUTPUT FORMAT
+*(plain text, Markdown allowed; exactly three blocks in this order, seperate
+main title, subtitle and edito with two blank lines)*
 
-MAIN TITLE  
+MAIN TITLE
+SUBTITLE
 EDITO
 """
 )
 
-TAGGER_SPEC = ModelSpec(
+NEWSLETTER_TITLE_AND_EDITO_SPEC = ModelSpec(
     name="newsletter_title_and_edito_spec",
     version="v1",
-    description="Generate the main title and weekly editorial intro for the Hex Machina newsletter.",
+    description=(
+        "Generate the main title and weekly editorial intro for the "
+        "Hex Machina newsletter."
+    ),
     provider="openai",
     config=OpenRouterConfig(
         prompt_spec=NEWSLETTER_TITLE_AND_EDITO_PROMPT,
@@ -108,5 +127,4 @@ TAGGER_SPEC = ModelSpec(
         max_tokens=10000,
         n=1
     )
-
 )

@@ -24,12 +24,19 @@ def execute(flow):
     flow.git_metadata = get_git_metadata()
     flow.parsed_date_threshold = to_aware_utc(flow.date_threshold)
     flow.parsed_cluster_date_threshold = to_aware_utc(flow.cluster_date_threshold)
-    flow.min_parsed_date_threshold = min(flow.parsed_date_threshold,
-                                         flow.parsed_cluster_date_threshold)
+    flow.min_parsed_date_threshold = min(
+        flow.parsed_date_threshold,
+        flow.parsed_cluster_date_threshold
+    )
+    logger.info(f"✅ parsed_date_threshold: {flow.parsed_date_threshold}")
+    logger.info(
+        f"✅ parsed_cluster_date_threshold: {flow.parsed_cluster_date_threshold}"
+    )
+    logger.info(f"✅ min_parsed_date_threshold: {flow.min_parsed_date_threshold}")
     storage = HexStorage(flow.config.get("db_path"))
     logger.info("✅ Database first connection established.")
     _clean_up_tables(storage, flow)
-    
+
     # Initialize metrics dictionary
     flow.metrics = {}
     flow.errors = {}

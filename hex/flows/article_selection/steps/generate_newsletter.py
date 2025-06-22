@@ -1,4 +1,3 @@
-from hex.storage.hex_storage import HexStorage
 import json
 from pathlib import Path
 import base64
@@ -85,8 +84,33 @@ def generate_newsletter_title_and_edito(
     pred = model_spec._loaded_model.predict(validated_input)
     preds = pred["output"].split("\n\n\n")
     main_title = preds[0].strip()
-    edito = preds[1].strip()
-    return main_title, edito
+    subtitle = preds[1].strip()
+    edito = preds[2].strip()
+    return main_title, subtitle, edito
+
+
+def generate_linkedin_post(
+    header: str,
+    subtitle: str,
+    edito: str,
+    result: str,
+    selection_dir: Path
+):
+    """
+    Generate a LinkedIn post from the newsletter report.
+    """
+    model_spec_name = "newsletter_linkedin_post_spec"
+    model_spec = load_model_spec(model_spec_name)
+    input_data = {
+        "header": header,
+        "subtitle": subtitle,
+        "edito": edito,
+        "result": result
+    }
+    validated_input = model_spec.extract_and_validate_input(input_data)
+    pred = model_spec._loaded_model.predict(validated_input)
+    preds = pred["output"]
+    return preds
 
 
 def generate_and_save_edito_image(
@@ -123,6 +147,7 @@ def generate_and_save_edito_image(
         f.write(base64.b64decode(b64_image))
 
     return image_path
+
 
 def generate_hexmachina_wordcloud(word_freq, save_path):
     # Custom light color palette
@@ -174,6 +199,7 @@ def generate_hexmachina_wordcloud(word_freq, save_path):
     # Save to file
     wc.to_file(save_path)
 
+
 def format_article_brief(article: Dict) -> dict:
     """
     Format an article dict into a dictionary with:
@@ -193,7 +219,10 @@ def format_article_brief(article: Dict) -> dict:
     # Estimate reading time: assume 200 words/minute
     text_length = article.get("text_content_length", 0)
     # Roughly 5 chars/word, 200 wpm
-    reading_time_min = max(5, int(text_length / 5 / 160)) if text_length else "N/A"
+    if text_length:
+        reading_time_min = max(5, int(text_length / 5 / 160))
+    else:
+        reading_time_min = "N/A"
     clusters = article.get("clusters_names_in_order_added", [])
     hashtags = [
         f"#{c.lower().replace(' ', '_')}" for c in clusters
@@ -240,7 +269,8 @@ def format_articles_for_newsletter(
         )
     return "\n".join(lines)
 
-def generate_newsletter_header(selection: Dict) -> str:
+
+def generate_newsletter_header(selection: Dict, title: str) -> str:
     """
     Generates the newsletter header string.
 
@@ -251,8 +281,7 @@ def generate_newsletter_header(selection: Dict) -> str:
         str: The formatted newsletter header.
     """
     doc_id = int(selection.get("doc_id", "N/A")) - 19
-    current_date = datetime.now().strftime("%-d %b %Y")
-    return f"Hex Machina — Issue #{doc_id} · {current_date}"
+    return f"Hex Machina · Issue {doc_id} · {title}"
 
 
 def generate_newsletter_markdown(storage, selection):
@@ -261,13 +290,17 @@ def generate_newsletter_markdown(storage, selection):
     else:
         clusters_scores = selection["clusters_scores"]
     if "linearly_selected_articles_with_diversity_artifact" in selection:
-        articles = json.loads(selection["linearly_selected_articles_with_diversity"])
+        articles = json.loads(
+            selection["linearly_selected_articles_with_diversity"]
+        )
     else:
         articles = selection["linearly_selected_articles_with_diversity"]
     ingestion_summary = selection.get("ingestion_summary", "")
     selection_dir = get_or_create_selection_dir(storage, selection)
-    header = generate_newsletter_header(selection)
-    main_title, edito = generate_newsletter_title_and_edito(clusters_scores, articles)
+    main_title, subtitle, edito = generate_newsletter_title_and_edito(
+        clusters_scores, articles
+    )
+    header = generate_newsletter_header(selection, main_title)
     generate_hexmachina_wordcloud(
         clusters_scores, selection_dir / "images/hexmachina_wordcloud.png"
     )
@@ -278,15 +311,25 @@ def generate_newsletter_markdown(storage, selection):
     )
     result = format_articles_for_newsletter(articles)
 
+    linkedin_post = generate_linkedin_post(
+        header=main_title,
+        subtitle=subtitle,
+        edito=edito,
+        result=result,
+        selection_dir=selection_dir
+    )
+
     output_content = (
         f"# {header}\n\n"
-        f"## {main_title}\n\n"
+        f"## {subtitle}\n\n"
         f"### Edito\n"
         f"{edito}\n\n"
         f"### Articles\n"
         f"{result}\n\n"
         f"### Ingestion Summary\n"
         f"{ingestion_summary}\n"
+        f"# LinkedIn Post\n"
+        f"{linkedin_post}\n"
     )
 
     output_file_path = selection_dir / "newsletter_report.txt"

@@ -9,20 +9,22 @@ from hex.storage.hex_storage import HexStorage
 # Initialize logger at module level
 logger = logging.getLogger(__name__)
 
+
 def _load_query(storage, articles_table, date_threshold):
     """Load articles from the database."""
     Article = Query()
     articles = storage.search(
         articles_table,
-        Article.published_date.test(
+        (Article.published_date.test(
             lambda d: to_aware_utc(d) >= date_threshold
-        ),
+        ) & Article.clusters_names_in_order_added.exists()),
     )
     logger.info(
         f"✅ Loaded {len(articles)} articles from '{articles_table}': "
         f"len(articles)={len(articles)}, date_threshold='{date_threshold}'"
     )
     return articles
+
 
 def _filter_already_selected_articles(
     storage, articles, articles_table, selected_articles_table
@@ -49,6 +51,7 @@ def _filter_already_selected_articles(
         f"from '{selected_articles_table}'"
     )
     return kept_articles
+
 
 def execute(flow):
     """Load articles published after a date threshold."""
