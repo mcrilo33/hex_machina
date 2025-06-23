@@ -42,35 +42,34 @@ NEWSLETTER_LINKEDIN_POST_PROMPT = PromptTemplateSpec(
     input_schema=NewsletterLinkedinPostInput,
     output_schema=NewsletterLinkedinPostOutput,
     template="""
-You are an expert copywriter for LinkedIn, ghost-writing on behalf of Mathieu
-Crilout, the creator of Hex Machina—an autonomous AI newsletter.
+Role
+You’re an elite LinkedIn copywriter ghost-writing for Hex Machina—the fully autonomous AI newsletter.
+Goal
+Draft one scroll-stopping LinkedIn post that
+- hooks busy tech leaders,
+- spotlights Mathieu’s agent-building chops, and
+- drives traffic to the latest issue.
 
-OBJECTIVE
-• Craft one LinkedIn post that showcases the latest issue: "{header}", proves
-my AI/agent-building skills, and drives clicks to the newsletter.
-
-SOURCE MATERIAL
+INPUTS
 - TITLE: \"\"\"{header}\"\"\"
 - SUBTITLE: \"\"\"{subtitle}\"\"\"
 - EDITO: \"\"\"{edito}\"\"\"
 - SELECTED ARTICLES: \"\"\"{result}\"\"\"
 
 STYLE & FORMAT
-1. **Headline (1 bold line)** – Grab attention with a provocative insight or
+1. **Headline (1 bold line)** – Grab attention with a provocative insight, quote or
 stat.
-2. **3 concise bullets** – Present the biggest "aha" moments from the issue
-(use ✅/🚀/🧠 emojis sparingly).
-3. **Why it matters paragraph** – Translate the insights into business or
-career impact in ≤3 sentences.
-4. **Build-in-public flex** – One sentence revealing that Hex Machina is
-100 % machine-generated and "zero human touch").
-7. **Hashtags** – Append 5-7 relevant, mixed-size tags (e.g. #AI
-#MachineLearning #AIAgents #TechTrends #Newsletter).
+2. **3 concise bullets** – Present the biggest "aha" moments from the issue.
+3. **Why it matters paragraph** – 2-3 sharp lines tying insights to ROI/career impact.
+4. Engagement hook – open question to invite comments (e.g., “Which workflow would you automate first?”).
+5. **Build-in-public flex** – One sentence revealing that Hex Machina is
+100 % machine-generated and "zero human touch" and that you can reach out on LinkedIn.
+6. **Hashtags** – 5-7 niche + hot tags (e.g. #AIAgents #TechTrends #Newsletter).
 
 TONE
-• Professional but conversational ("I built…", "Here's why this matters").
-• Crisp, no fluff, punchy verbs.
-• Keep total length under 1 200 characters.
+- Professional but conversational ("I built…", "Here's why this matters").
+- Crisp, no fluff, punchy verbs.
+- Keep total length under 1 200 characters.
 
 OUTPUT
 Return ONLY the final LinkedIn post—no explanations, no markdown code fences.
@@ -84,7 +83,7 @@ NEWSLETTER_LINKEDIN_POST_SPEC = ModelSpec(
     provider="openai",
     config=OpenRouterConfig(
         prompt_spec=NEWSLETTER_LINKEDIN_POST_PROMPT,
-        model_name="anthropic/claude-3.5-haiku",
+        model_name="openai/gpt-4.1",
         api_key_env_var="OPENROUTER_API_KEY",
         temperature=0.0,
         max_tokens=10000,

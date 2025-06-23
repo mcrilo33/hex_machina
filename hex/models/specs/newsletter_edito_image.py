@@ -23,14 +23,10 @@ NEWSLETTER_EDITO_IMAGE_PROMPT = PromptTemplateSpec(
     input_schema=NewsletterEditoImageInput,
     output_schema=NewsletterEditoImageOutput,
     template="""
-An abstract, conceptual digital illustration representing the theme: "{title}".
-
-Futuristic and minimalist visual style.  
-Cool blue and white palette.  
+Create a sleek, panoramic digital illustration that embodies the idea: "{title}".
 Soft gradients on a light background.  
 Wide horizontal format (banner-style).  
 Centered, balanced composition.  
-Evokes intelligence, signal flow, and machine coordination.  
 **Do not include any text, words, or lettering in the image.**
 """
 )

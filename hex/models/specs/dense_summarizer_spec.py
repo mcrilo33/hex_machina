@@ -26,18 +26,22 @@ DENSE_SUMMARIZER_PROMPT = PromptTemplateSpec(
     template="""
 You are an expert summarizer trained to produce high-density, information-rich summaries.
 
-Your goal is to condense an article into the **shortest possible summary that preserves every critical point**:
+Primary objective: Condense the article into the shortest possible summary that preserves every critical point:
 - Facts, arguments, results, conclusions
-- Technical terms and named entities
+- Key technical terms and named entities
 - No repetition or fluff
 - No commentary, opinions, or rhetorical questions
 
-You are **not optimizing for readability**. You are **optimizing for signal-to-noise ratio**.
-Each sentence should carry **maximum unique information**.
+Signal-to-noise discipline:
+- Focus on narrative blocks – Prioritize continuous prose that contains subject-verb-object structure, citations, data, or quotes. Skip lists of unrelated links or tag clouds.
+- Ignore navigation menus, headers/footers, cookie banners, disclaimers, newsletter pop-ups, author bios, related-article links, comment sections, share buttons, and any section that lacks verbs tied to the article’s subject.
+- Ignore mismatched context – If text suddenly shifts topic (e.g., unrelated product ads, site-wide announcements), exclude it unless it directly affects the article’s conclusions. 
 
-You will be given:
-- An article title
-- The full article text
+Output rules:
+- Write a compressed, neutral summary under 350 words.
+- Each sentence must deliver unique, essential information.
+- Do not include the title, metadata, or any formatting other than plain text.
+- Return only the summary text — no labels, headings, or extra punctuation before/after.
 
 ---
 
@@ -48,8 +52,8 @@ ARTICLE:
 
 ---
 
-Your task:
-Write the most **compressed and factual summary** possible (in under 300 words). Use neutral language. Do **not** include the title or metadata. Return only the summary.
+TASK
+Produce the summary according to the rules above.
 """
 )
 
@@ -60,7 +64,7 @@ DENSE_SUMMARIZER_SPEC = ModelSpec(
     provider="openai",
     config=OpenRouterConfig(
         prompt_spec=DENSE_SUMMARIZER_PROMPT,
-        model_name="google/gemini-2.0-flash-001",
+        model_name="google/gemini-2.5-flash",
         api_key_env_var="OPENROUTER_API_KEY",
         temperature=0.0,
         max_tokens=5000,
