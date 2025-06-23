@@ -88,7 +88,11 @@ class StealthRSSArticleScraper(BaseArticleScraper):
                     html,error = self.fetch_with_undetected_playwright(article_url)
                     if html:
                         normalized["html_content"] = html
-                        normalized = extract_article(self, normalized)
+                        try:
+                            normalized = extract_article(self, normalized)
+                        except Exception as e:
+                            logger.warning(f"Error extracting article {article_url}: {e}")
+                            error = str(e)
                     elapsed_time = time.time() - start_time
                     normalized["metadata"] = {
                         "error": error,
@@ -230,11 +234,18 @@ class RSSArticleScraper(BaseArticleScraper):
 
         rss_data = response.meta.get("rss_data", {})
         rss_data["html_content"] = response.text if not response.text=='' else None
+        error = None
         if rss_data["html_content"] is not None:
-            rss_data = extract_article(self, rss_data)
+            try:
+                rss_data = extract_article(self, rss_data)
+            except Exception as e:
+                logger.warning(f"Error extracting article {response.url}: {e}")
+                error = str(e)
+        else:
+            error = "No HTML content"
         elapsed_time = time.time() - self.start_time
         rss_data["metadata"] = {
-            "error": None,
+            "error": error,
             "duration": int(elapsed_time)
         }
         self.store([rss_data])
