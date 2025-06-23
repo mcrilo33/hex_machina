@@ -40,7 +40,8 @@ class ArticleEnrichmentFlow(FlowSpec):
 
     articles_limit = Parameter('articles_limit',
                                help='Maximum number of articles to process',
-                               default=None)
+                               default=None,
+                               type=int)
 
     date_threshold = Parameter('date_threshold',
                                help='Process articles published after this date',
