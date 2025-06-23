@@ -55,11 +55,11 @@ def render_articles(title, articles):
 
     current.card.append(Table(headers=headers, data=rows))
 
-def render_newsletter_markdown(storage, selection):
+def render_newsletter_markdown(storage, selection, path_to_save: str = None):
     """
     Render the newsletter markdown using generate_newsletter_markdown and append it to the Metaflow card.
     """
-    markdown_content = generate_newsletter_markdown(storage, selection)
+    markdown_content = generate_newsletter_markdown(storage, selection, path_to_save=path_to_save)
     current.card.append(Markdown(f"## Newsletter"))
     current.card.append(
         Markdown(markdown_content)
@@ -77,4 +77,8 @@ def execute(flow):
 
     render_articles("Top {flow.articles_limit} Linearly Scored Articles selected with diversity", flow.selection.get("linearly_selected_articles_with_diversity", []))
 
-    render_newsletter_markdown(storage, storage.lazy_load(flow.selection)[0])
+    render_newsletter_markdown(
+        storage,
+        storage.lazy_load(flow.selection)[0],
+        path_to_save=flow.newsletter_dir
+    )

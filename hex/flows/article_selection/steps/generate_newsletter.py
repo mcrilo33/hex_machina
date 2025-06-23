@@ -7,7 +7,11 @@ from wordcloud import WordCloud
 from typing import Any, List, Dict, Union
 
 
-def get_or_create_selection_dir(storage: Any, selection: dict) -> Path:
+def get_or_create_selection_dir(
+    storage: Any,
+    selection: dict,
+    path_to_save: str = None
+) -> Path:
     """
     Ensure the directory at storage.db_path.parent/selection["doc_id"] exists,
     creating it if necessary, and return the Path.
@@ -22,7 +26,10 @@ def get_or_create_selection_dir(storage: Any, selection: dict) -> Path:
     """
     db_path = Path(storage.db_path)
     doc_id = selection["doc_id"]
-    selection_dir = db_path.parent / "selections" / str(doc_id)
+    if path_to_save:
+        selection_dir = Path(path_to_save)
+    else:
+        selection_dir = db_path.parent / "selections" / str(doc_id)
     selection_dir.mkdir(parents=True, exist_ok=True)
     images_dir = selection_dir / "images"
     images_dir.mkdir(parents=True, exist_ok=True)
@@ -150,6 +157,9 @@ def generate_and_save_edito_image(
 
 
 def generate_hexmachina_wordcloud(word_freq, save_path):
+    for word, freq in word_freq.items():
+        if freq == 0:
+            word_freq[word] = 0.1
     # Custom light color palette
     colors = [
         "#FFFFFF",   # Pure white
@@ -263,8 +273,8 @@ def format_articles_for_newsletter(
         hashtags = " ".join(formatted_brief["clusters"])
 
         lines.append(
-            f'{idx}. {title}\n'
-            f'{core_summary} [link] {link}\n'
+            f'{idx}. {title} | '
+            f'{core_summary} | {link} | '
             f'**{source} · {date} · ⏱ {reading_time_min} min · {hashtags}**'
         )
     return "\n".join(lines)
@@ -284,7 +294,7 @@ def generate_newsletter_header(selection: Dict, title: str) -> str:
     return f"Hex Machina · Issue {doc_id} · {title}"
 
 
-def generate_newsletter_markdown(storage, selection):
+def generate_newsletter_markdown(storage, selection, path_to_save: str = None):
     if "clusters_scores_artifact" in selection:
         clusters_scores = json.loads(selection["clusters_scores"])
     else:
@@ -296,7 +306,10 @@ def generate_newsletter_markdown(storage, selection):
     else:
         articles = selection["linearly_selected_articles_with_diversity"]
     ingestion_summary = selection.get("ingestion_summary", "")
-    selection_dir = get_or_create_selection_dir(storage, selection)
+    selection_dir = get_or_create_selection_dir(
+        storage, selection, path_to_save=path_to_save
+    )
+    print(f"selection_dir: {selection_dir}")
     main_title, subtitle, edito = generate_newsletter_title_and_edito(
         clusters_scores, articles
     )
@@ -305,7 +318,7 @@ def generate_newsletter_markdown(storage, selection):
         clusters_scores, selection_dir / "images/hexmachina_wordcloud.png"
     )
     generate_and_save_edito_image(
-        title=main_title,
+        title=main_title + " : " + subtitle,
         selection_dir=selection_dir,
         image_filename="edito_image.png"
     )
