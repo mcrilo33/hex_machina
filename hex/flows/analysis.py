@@ -1,6 +1,5 @@
 """ Analysis functions for the Hex pipeline. """
 import pandas as pd
-import matplotlib.pyplot as plt
 from pathlib import Path
 from datetime import datetime
 from typing import List, Optional, Tuple
@@ -8,6 +7,8 @@ from email.utils import parsedate_to_datetime, format_datetime
 import numpy as np
 import os
 import uuid
+import matplotlib.pyplot as plt
+from collections import Counter
 
 from hex.ingestion.parser import extract_domain
 
@@ -94,7 +95,6 @@ def format_duration(seconds: float) -> str:
 
 
 def prepare_domain_counts(articles):
-    from collections import Counter
     return Counter(
         a["url_domain"] for a in articles if a.get("url_domain")
     )
@@ -102,7 +102,6 @@ def prepare_domain_counts(articles):
 
 def prepare_field_coverage(articles):
     """Returns a dict: field → (count, percent) over all articles."""
-    from collections import Counter
     total = len(articles)
     if total == 0:
         return {}
@@ -248,19 +247,58 @@ def generate_field_coverage_markdown(field_coverage, total):
 
     return "\n".join(lines)
 
-
 def get_domain_table_data(articles: list) -> list:
-    """Extract domain data for table display."""
-    domain_counts = prepare_domain_counts(articles)
-    return [
-        {
-            "domain": domain,
-            "count": count,
-            "percentage": (count / len(articles)) * 100
-        }
-        for domain, count in domain_counts.most_common()
-    ]
+    """
+    Given a list of article dicts, return domain_table_data:
+    [domain, ai_count, ai_rate, top_clusters_str]
+    """
+    df = pd.DataFrame(articles)
+    domain_table_data = []
 
+    required_cols = [
+        "url_domain",
+        "is_ai_added",
+        "clusters_names_in_order_added"
+    ]
+    if not all(col in df.columns for col in required_cols):
+        return pd.DataFrame(
+            domain_table_data,
+            columns=["domain", "ai count", "ai rate", "top 5 clusters with rate"]
+        )
+
+    for domain, group in df.groupby("url_domain"):
+        total_articles = len(group)
+        ai_count = group["is_ai_added"].astype(int).sum()
+        ai_rate = ai_count / total_articles if total_articles > 0 else 0
+
+        # count clusters
+        cluster_counter = Counter()
+        for cluster_list in group["clusters_names_in_order_added"]:
+            if isinstance(cluster_list, list):
+                cluster_counter.update(cluster_list)
+
+        top_clusters = cluster_counter.most_common(5)
+        top_clusters_str = ", ".join(
+            f"{name}: {count / total_articles:.1%}"
+            for name, count in top_clusters
+        ) if top_clusters else "n/a"
+
+        domain_table_data.append([
+            domain,
+            int(ai_count),
+            f"{ai_rate:.1%}",
+            top_clusters_str
+        ])
+
+    # sort table by ai count descending
+    # Convert to DataFrame with proper column names
+    df = pd.DataFrame(
+        domain_table_data,
+        columns=["domain", "ai count", "ai rate", "top 5 clusters with rate"]
+    )
+    # Sort by ai count descending
+    df = df.sort_values("ai count", ascending=False)
+    return df
 
 def filter_articles_by_clusters(articles: list, filtered_clusters: list) -> list:
     """
@@ -499,7 +537,6 @@ def plot_top_clusters_histogram(
             all_clusters.extend(cluster_list)
     if not all_clusters:
         return None
-    from collections import Counter
     cluster_counts = Counter(all_clusters)
     top_n_clusters = cluster_counts.most_common(top_n)
     if not top_n_clusters:
