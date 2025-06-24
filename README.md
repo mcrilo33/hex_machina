@@ -18,9 +18,9 @@ Keeping up with the **fast-moving AI landscape** is **time-consuming**. Traditio
 **Selection** → Selects most relevant items in an unsupervised way. <img src="./docs/images/hex-eye.png" alt="hex-eye" width="24" height="24"/>  
 
 
-**Newsletter Generator** → Compiles and formats weekly updates. (Not yet implemented)  
+**Newsletter Generator** → Compiles and formats weekly updates. <img src="./docs/images/hex-eye.png" alt="hex-eye" width="24" height="24"/>  
 
-**Orchestration Script** → Runs the full pipeline automatically. (Not yet implemented)  
+**Orchestration Script** → Runs the full pipeline automatically. <img src="./docs/images/hex-eye.png" alt="hex-eye" width="24" height="24"/>  
 
 ## 🏗 Technology Stack
 
@@ -32,7 +32,7 @@ Keeping up with the **fast-moving AI landscape** is **time-consuming**. Traditio
 | Tagging & NLP      | Hugging Face / OpenAI        |
 | Workflow           | Metaflow                     |
 | Hosting            | Beehiiv                      |
-| Ochestration       | Zapier                       |
+| Ochestration       | Cronjob                      |
 
 
 ## 📚 Documentation
