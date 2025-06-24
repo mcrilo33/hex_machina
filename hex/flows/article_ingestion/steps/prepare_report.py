@@ -9,7 +9,6 @@ from metaflow import step, card, current
 from metaflow.cards import Markdown, Table, Image
 
 from hex.flows.analysis import get_reference_domains, format_duration, \
-                               generate_domain_match_markdown, \
                                prepare_article_distribution_indexed_by_date, \
                                plot_article_distribution_indexed_by_date, \
                                prepare_error_distribution_by_domain_and_status, \
@@ -96,9 +95,12 @@ def execute(flow):
                 flow.metrics["stored_count"]["ingest_rss_articles"]["rss_article_scraper"]],
         ["Stealth RSS Article Scraper Count",
                 flow.metrics["stored_count"]["ingest_rss_articles"]["stealth_rss_article_scraper"]],
+        ["Website Scraper Count",
+                flow.metrics["stored_count"]["ingest_rss_articles"]["website_scraper"]],
         ["Total Count",
-                (flow.metrics["stored_count"]["ingest_rss_articles"]["stealth_rss_article_scraper"]
-                 + flow.metrics["stored_count"]["ingest_rss_articles"]["rss_article_scraper"])],
+                (flow.metrics["stored_count"]["ingest_rss_articles"]["rss_article_scraper"]
+                 + flow.metrics["stored_count"]["ingest_rss_articles"]["stealth_rss_article_scraper"]
+                 + flow.metrics["stored_count"]["ingest_rss_articles"]["website_scraper"])],
         ["Start Time", dt.isoformat()],
         ["Duration", format_duration(
             flow.metrics["step_duration"]["ingest_rss_articles"]
@@ -120,7 +122,8 @@ def execute(flow):
 
     rss_files = {
         "Regular RSS Feeds": Path(Path(storage.db_path).parent,'rss_feeds.txt'),
-        "Stealth RSS Feeds": Path(Path(storage.db_path).parent,'rss_feeds_stealth.txt')
+        "Stealth RSS Feeds": Path(Path(storage.db_path).parent,'rss_feeds_stealth.txt'),
+        "Regular HTML Websites": Path(Path(storage.db_path).parent,'website_urls.txt')
     }
     render_domain_match_card_group(articles_with_no_error, rss_files)
 
