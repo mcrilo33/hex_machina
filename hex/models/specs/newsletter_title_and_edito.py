@@ -90,8 +90,8 @@ sharpens it
 Started Asking the Right Questions*
 
 #### EDITO
-- 150–200 words
-- 2-3 crisp paragraphs
+- 200–300 words
+- 3-5 crisp paragraphs
 -  **set the scene** and explain why this week's stories matter
 - *Group articles where possible* (e.g., "Several pieces focus on agent
 architectures<sup>1,3,7</sup>").

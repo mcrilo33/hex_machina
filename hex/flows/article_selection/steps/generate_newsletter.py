@@ -96,7 +96,7 @@ def generate_newsletter_title_and_edito(
     return main_title, subtitle, edito
 
 
-def generate_linkedin_post(
+def generate_linkedin_twitter_post(
     header: str,
     subtitle: str,
     edito: str,
@@ -106,18 +106,23 @@ def generate_linkedin_post(
     """
     Generate a LinkedIn post from the newsletter report.
     """
-    model_spec_name = "newsletter_linkedin_post_spec"
-    model_spec = load_model_spec(model_spec_name)
+    model_spec_name_linkedin = "newsletter_linkedin_post_spec"
+    model_spec_linkedin = load_model_spec(model_spec_name_linkedin)
+    model_spec_name_twitter = "newsletter_twitter_post_spec"
+    model_spec_twitter = load_model_spec(model_spec_name_twitter)
     input_data = {
         "header": header,
         "subtitle": subtitle,
         "edito": edito,
         "result": result
     }
-    validated_input = model_spec.extract_and_validate_input(input_data)
-    pred = model_spec._loaded_model.predict(validated_input)
-    preds = pred["output"]
-    return preds
+    validated_input_linkedin = model_spec_linkedin.extract_and_validate_input(input_data)
+    pred_linkedin = model_spec_linkedin._loaded_model.predict(validated_input_linkedin)
+    preds_linkedin = pred_linkedin["output"]
+    validated_input_twitter = model_spec_twitter.extract_and_validate_input(input_data)
+    pred_twitter = model_spec_twitter._loaded_model.predict(validated_input_twitter)
+    preds_twitter = pred_twitter["output"]
+    return preds_linkedin, preds_twitter
 
 
 def generate_and_save_edito_image(
@@ -324,7 +329,7 @@ def generate_newsletter_markdown(storage, selection, path_to_save: str = None):
     )
     result = format_articles_for_newsletter(articles)
 
-    linkedin_post = generate_linkedin_post(
+    linkedin_post, twitter_post = generate_linkedin_twitter_post(
         header=main_title,
         subtitle=subtitle,
         edito=edito,
@@ -343,6 +348,8 @@ def generate_newsletter_markdown(storage, selection, path_to_save: str = None):
         f"{ingestion_summary}\n"
         f"# LinkedIn Post\n"
         f"{linkedin_post}\n"
+        f"# Twitter Post\n"
+        f"{twitter_post}\n"
     )
 
     output_file_path = selection_dir / "newsletter_report.txt"

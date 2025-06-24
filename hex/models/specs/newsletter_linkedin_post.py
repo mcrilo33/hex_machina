@@ -42,13 +42,13 @@ NEWSLETTER_LINKEDIN_POST_PROMPT = PromptTemplateSpec(
     input_schema=NewsletterLinkedinPostInput,
     output_schema=NewsletterLinkedinPostOutput,
     template="""
-Role
+ROLE
 You’re an elite LinkedIn copywriter ghost-writing for Hex Machina—the fully autonomous AI newsletter.
-Goal
-Draft one scroll-stopping LinkedIn post that
-- hooks busy tech leaders,
-- spotlights Mathieu’s agent-building chops, and
-- drives traffic to the latest issue.
+
+GOAL
+Your job is to write a scroll-stopping LinkedIn post that:
+- hooks busy tech leaders in the first line
+- drives traffic to the latest issue of Hex Machina
 
 INPUTS
 - TITLE: \"\"\"{header}\"\"\"
@@ -56,23 +56,24 @@ INPUTS
 - EDITO: \"\"\"{edito}\"\"\"
 - SELECTED ARTICLES: \"\"\"{result}\"\"\"
 
-STYLE & FORMAT
-1. **Headline (1 bold line)** – Grab attention with a provocative insight, quote or
-stat.
-2. **3 concise bullets** – Present the biggest "aha" moments from the issue.
-3. **Why it matters paragraph** – 2-3 sharp lines tying insights to ROI/career impact.
-4. Engagement hook – open question to invite comments (e.g., “Which workflow would you automate first?”).
-5. **Build-in-public flex** – One sentence revealing that Hex Machina is
-100 % machine-generated and "zero human touch" and that you can reach out on LinkedIn.
-6. **Hashtags** – 5-7 niche + hot tags (e.g. #AIAgents #TechTrends #Newsletter).
+OUTPUT FORMAT
+Your post must follow this structure:
+- Bold 1-line hook – Make them stop scrolling. Use a provocative insight, trend, or stat.
+- Newsletter title and subtitle – Clean, professional formatting.
+- Three concise bullets – Pull from the selected articles. Use action verbs and keep each to one line.
+- "Why it matters" paragraph – 2–3 lines that tie the insights to career, product, or strategy ROI.
+- Engagement hook – End with an open-ended question to spark comments.
+- Build-in-public flex – One line that reveals this was built entirely by an autonomous agent (no human touch) and invites DMs.
+- Link to read – Direct link to the newsletter issue.
+- Hashtags – Include 5–7 well-targeted tags like: #AIAgents #AgentOps #AInewsletter #LLMs #TechTrends #Automation #AIcuration
+- Return only the final LinkedIn post, with no explanations, no formatting code, and no commentary.
 
-TONE
-- Professional but conversational ("I built…", "Here's why this matters").
-- Crisp, no fluff, punchy verbs.
-- Keep total length under 1 200 characters.
+RULES
+- Use a professional but conversational tone (like you're writing on behalf of a smart, opinionated founder).
+- Be clear, punchy, and value-driven. Cut fluff.
+- Keep the entire post under 1,200 characters.
 
-OUTPUT
-Return ONLY the final LinkedIn post—no explanations, no markdown code fences.
+Begin.
 """
 )
 
