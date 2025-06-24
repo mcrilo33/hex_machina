@@ -92,7 +92,11 @@ class StealthRSSArticleScraper(BaseArticleScraper):
                             normalized = extract_article(self, normalized)
                         except Exception as e:
                             logger.warning(f"Error extracting article {article_url}: {e}")
-                            error = str(e)
+                            error = {
+                                "status": "Error extracting article",
+                                "message": str(e),
+                                "url": article_url,
+                            }
                     elapsed_time = time.time() - start_time
                     normalized["metadata"] = {
                         "error": error,
@@ -209,14 +213,14 @@ class RSSArticleScraper(BaseArticleScraper):
                 break
 
     def handle_error(self, failure):
-        error_msg = {
+        error = {
             "status": failure.response.status,
             "url": failure.response.url
         }
-        logger.warning(error_msg)
+        logger.warning(error)
         elapsed_time = time.time() - self.start_time
         self.normalized["metadata"] = {
-            "error": error_msg,
+            "error": error,
             "duration": int(elapsed_time)
         }
         self.store([self.normalized])
@@ -240,9 +244,16 @@ class RSSArticleScraper(BaseArticleScraper):
                 rss_data = extract_article(self, rss_data)
             except Exception as e:
                 logger.warning(f"Error extracting article {response.url}: {e}")
-                error = str(e)
+                error = {
+                    "status": "Error extracting article",
+                    "message": str(e),
+                    "url": response.url,
+                }
         else:
-            error = "No HTML content"
+            error = {
+                "status": "No HTML content",
+                "url": response.url,
+            }
         elapsed_time = time.time() - self.start_time
         rss_data["metadata"] = {
             "error": error,
