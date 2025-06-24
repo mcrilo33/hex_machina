@@ -1,6 +1,7 @@
 """ Load articles step. """
 import logging
 import time
+import re
 from typing import Callable
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -131,7 +132,9 @@ def select_top_articles_with_diversity(
             max_item = max(articles, key=lambda d: d["clusters_score"])
             articles.remove(max_item)
             if(max_item["title"] not in title_already_selected
-               and max_item["url_domain"] not in url_domain_already_selected):
+               and max_item["url_domain"] not in url_domain_already_selected
+               and re.search(r"newsletter", max_item["title"], re.IGNORECASE) is None
+               and re.search(r"therundown.ai", max_item["url_domain"], re.IGNORECASE) is None):
                 selected = True
                 title_already_selected.add(max_item["title"])
                 url_domain_already_selected.add(max_item["url_domain"])
