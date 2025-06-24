@@ -195,3 +195,5 @@ hex/config.yaml
 .DS_Store
 report_*.html
 test_*.py
+
+generated_newsletters/
