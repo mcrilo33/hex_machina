@@ -79,6 +79,7 @@ breakthroughs, or controversies.
 - 25-45 characters
 - Editorial and punchy — sets the big idea
 - Must stand alone but feel incomplete without the subtitle
+- Set the main theme of the week.
 - Avoid generic headers like "This Week in AI"
 
 #### SUBTITLE
@@ -91,10 +92,12 @@ Started Asking the Right Questions*
 
 #### EDITO
 - 200–300 words
-- 3-5 crisp paragraphs
--  **set the scene** and explain why this week's stories matter
+- 3-5 crisp paragraphs about what's happening this week in AI.
+- It has to be relevant to the main title and subtitle.
+- **set the scene** and explain why this week's stories matter.
 - *Group articles where possible* (e.g., "Several pieces focus on agent
-architectures<sup>1,3,7</sup>").
+architectures<sup>1,3,7</sup>") but talk about it only if it is relevant to the
+main title and subtitle.
 - Use **Markdown** for readability (bold phrases, bullets, line breaks)
 - Include *insightful takeaways*: what to watch, think about, or question
 - End with a short, witty Hex sign-off
