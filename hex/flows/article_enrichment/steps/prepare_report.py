@@ -100,7 +100,10 @@ def compute_step_metrics(flow):
             completion_rate = 1.0
         if step_name == "replicate_articles":
             num_inputs = len(flow.replicated_articles)
-            completion_rate = len(flow.replicated_articles) / len(flow.articles)
+            if len(flow.articles) > 0:
+                completion_rate = len(flow.replicated_articles) / len(flow.articles)
+            else:
+                completion_rate = 0.0
 
         row = [
             step_name,
