@@ -8,6 +8,7 @@ playwright==1.51.0
 PyDispatcher==2.0.5
 pyee==12.1.1
 scrapy-playwright==0.0.43
+playwright_stealth==1.0.6
 sgmllib3k==1.0.0
 soupsieve==2.6
 tinydb==4.8.2
@@ -15,7 +16,7 @@ pyyaml==6.0.2
 MainContentExtractor
 dotenv
 openai
-sklearn>=1.6.1
+scikit-learn
 graphviz
 evaluate
 rouge-score
@@ -23,3 +24,5 @@ absl-py
 bert_score
 metaflow
 pillow
+rich
+wordcloud
