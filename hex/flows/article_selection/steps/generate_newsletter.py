@@ -162,6 +162,21 @@ def generate_and_save_edito_image(
 
 
 def generate_hexmachina_wordcloud(word_freq, save_path):
+    # Remove 'AI' from all keys in word_freq, preserving spaces if 'AI' is between words or at boundaries
+    cleaned_word_freq: dict[str, float] = {}
+    for word, freq in word_freq.items():
+        # Do not modify if the value is "open ai"
+        if word.strip().lower() == "open ai":
+            cleaned_word_freq[word] = freq
+            continue
+        # Remove 'AI' only if it is a standalone word or part of a word, but preserve spaces
+        # Replace 'AI' with '' and then normalize spaces
+        new_word = word.replace("AI", " ")
+        # Collapse multiple spaces and strip
+        new_word = " ".join(new_word.split())
+        cleaned_word_freq[new_word] = freq
+    word_freq = cleaned_word_freq
+
     for word, freq in word_freq.items():
         if freq == 0:
             word_freq[word] = 0.1
@@ -330,7 +345,7 @@ def generate_newsletter_markdown(storage, selection, path_to_save: str = None):
     result = format_articles_for_newsletter(articles)
 
     linkedin_post, twitter_post = generate_linkedin_twitter_post(
-        header=main_title,
+        header=header,
         subtitle=subtitle,
         edito=edito,
         result=result,
