@@ -128,7 +128,7 @@ def select_top_articles_with_diversity(
     for _ in range(n):
         # Select the article with the highest cluster score
         selected = False
-        while not selected:
+        while not selected and len(articles) > 0:
             max_item = max(articles, key=lambda d: d["clusters_score"])
             articles.remove(max_item)
             if(max_item["title"] not in title_already_selected
