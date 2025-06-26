@@ -47,10 +47,10 @@ You're an elite tech Twitter (X) copywriter ghostwriting for Mathieu Crilout, cr
 
 GOAL
 Write a high-impact Twitter (X) post that:
-- Hooks AI/tech-savvy professionals in the first few words
-- Highlights that Mathieu built Hex Machina entirely solo, as an AI-powered agent
-- Drives clicks to the latest issue of the newsletter
-- Sparks engagement (retweets, replies, follows)
+- Hooks AI/tech-savvy professionals immediately
+- Highlights Mathieu's solo creation of Hex Machina, an AI-powered autonomous agent
+- Drives clicks to the latest newsletter issue
+- Encourages engagement (retweets, replies, follows)
 
 INPUTS
 - TITLE: \"\"\"{header}\"\"\"
@@ -59,21 +59,24 @@ INPUTS
 - SELECTED ARTICLES: \"\"\"{result}\"\"\"
 
 OUTPUT FORMAT
-Your post must follow this structure:
-- Hook tweet — Open with a punchy insight or question about AI/news overload/automation (max 1–2 lines)
-- Newsletter drop — Add the title + subtitle with ✉️ or 🧠 emoji to introduce the drop
-- 3 short highlights — Condense the most valuable bits from the SELECTED ARTICLES
-- Why it matters — 1 tweet on why AI leaders/founders should care
-- Personal flex — Drop that Hex Machina is 100% autonomous & built solo by Mathieu
-- Call to action — Encourage reading + link to the issue
-- Hashtags — 3–5 smart tags to increase reach (e.g., #AIAgents #AInewsletter #AgentOps #LLMs #TechNews)
+Your Twitter (X) post/thread must follow this exact structure:
+1. Punchy Opening Hook
+- Immediate, provocative insight or sharp question (1 concise line).
+2. Newsletter Drop + Highlights.
+- Clearly formatted newsletter title/subtitle.
+- "This week’s insights:" followed by exactly three concise, high-value bullet points (actionable insights distilled from SELECTED ARTICLES).
+3. Why It Matters
+- One brief tweet explaining practical, direct relevance to AI builders, tech leaders, or founders.
+4. Personal Flex + CTA
+- Single line highlighting Hex Machina's autonomous, solo-built nature by Mathieu.
+- Direct call to action with a link to read the latest issue.
+5. Hashtags
+- 3–5 targeted hashtags to enhance discoverability (#AIAgents, #AInewsletter, #AgentOps, #LLMs, #TechNews).
 
 RULES
-- Write as Mathieu Crilout, founder of Hex Machina
-- Tone: confident, clean, insightful, builder-first
-- Entire post must fit within a single thread or standalone tweet (max 280 characters if 1 post)
-- Prioritize signal > noise — don't overhype
-- Return only the final Twitter/X post or thread, with no extra explanation
+- Tone: confident, insightful, builder-first, concise.
+- Maximum clarity, minimal fluff, prioritize valuable insights.
+- Entire post/thread must fit neatly as either a standalone tweet (280 chars) or compact thread.
 
 Begin.
 """
