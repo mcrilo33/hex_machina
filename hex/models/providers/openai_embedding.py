@@ -151,9 +151,9 @@ class OpenAIEmbedding():
         except Exception as e:
             if 'Incorrect API key' in str(e):
                 raise ValueError(
-                    f"Wrong OpenAI API key!\n"
-                    f"You need to set the OPENAI_API_KEY in the .env file!\n"
-                    f">>> See README.md for more details <<<"
+                    "Wrong OpenAI API key!\n"
+                    "You need to set the OPENAI_API_KEY in the .env file!\n"
+                    ">>> See README.md for more details <<<"
                 )
 
         embedding = response.data[0].embedding
