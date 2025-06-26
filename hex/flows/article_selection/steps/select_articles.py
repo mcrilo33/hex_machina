@@ -1,6 +1,7 @@
 """ Load articles step. """
 import logging
 import time
+import re
 from typing import Callable
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -123,15 +124,20 @@ def select_top_articles_with_diversity(
     # Select top N articles based on cluster scores
     selected_articles = []
     title_already_selected = set()
+    url_domain_already_selected = set()
     for _ in range(n):
         # Select the article with the highest cluster score
         selected = False
         while not selected:
             max_item = max(articles, key=lambda d: d["clusters_score"])
             articles.remove(max_item)
-            if max_item["title"] not in title_already_selected:
+            if(max_item["title"] not in title_already_selected
+               and max_item["url_domain"] not in url_domain_already_selected
+               and re.search(r"newsletter", max_item["title"], re.IGNORECASE) is None
+               and re.search(r"therundown.ai", max_item["url_domain"], re.IGNORECASE) is None):
                 selected = True
                 title_already_selected.add(max_item["title"])
+                url_domain_already_selected.add(max_item["url_domain"])
         selected_articles.append(max_item)
         # Remove best cluster of the selected item from the cluster scores
         # to ensure diversity
@@ -200,10 +206,11 @@ def execute(flow):
     logger.info(f"✅ {len(articles_for_selection)} articles for selection")
     logger.info("✅ Scoring clusters...")
 
+    limit = min(flow.articles_limit, len(articles_for_selection))
     cluster_scores, top_n_linearly_scored_articles_with_diversity = \
         select_top_articles_with_diversity(
             articles_for_cluster_scores, articles_for_selection,
-            order_metric=linear_order_metric, n=flow.articles_limit
+            order_metric=linear_order_metric, n=limit
         )
     storage = HexStorage(flow.config.get("db_path"))
     selection = {
@@ -212,7 +219,7 @@ def execute(flow):
         "linearly_selected_articles_with_diversity": (
             top_n_linearly_scored_articles_with_diversity
         ),
-        "ingestion_summary": generate_ingestion_summary(articles_for_selection)
+        "ingestion_summary": generate_ingestion_summary(flow.articles)
     }
 
     for article in top_n_linearly_scored_articles_with_diversity:

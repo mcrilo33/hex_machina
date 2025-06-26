@@ -88,7 +88,15 @@ class StealthRSSArticleScraper(BaseArticleScraper):
                     html,error = self.fetch_with_undetected_playwright(article_url)
                     if html:
                         normalized["html_content"] = html
-                        normalized = extract_article(self, normalized)
+                        try:
+                            normalized = extract_article(self, normalized)
+                        except Exception as e:
+                            logger.warning(f"Error extracting article {article_url}: {e}")
+                            error = {
+                                "status": "Error extracting article",
+                                "message": str(e),
+                                "url": article_url,
+                            }
                     elapsed_time = time.time() - start_time
                     normalized["metadata"] = {
                         "error": error,
@@ -205,17 +213,17 @@ class RSSArticleScraper(BaseArticleScraper):
                 break
 
     def handle_error(self, failure):
-        error_msg = {
+        error = {
             "status": failure.response.status,
             "url": failure.response.url
         }
-        logger.warning(error_msg)
+        logger.warning(error)
         elapsed_time = time.time() - self.start_time
         self.normalized["metadata"] = {
-            "error": error_msg,
+            "error": error,
             "duration": int(elapsed_time)
         }
-        self.store(self.normalized)
+        self.store([self.normalized])
         self.stored_count += 1
 
     def parse(self, response):
@@ -230,11 +238,25 @@ class RSSArticleScraper(BaseArticleScraper):
 
         rss_data = response.meta.get("rss_data", {})
         rss_data["html_content"] = response.text if not response.text=='' else None
+        error = None
         if rss_data["html_content"] is not None:
-            rss_data = extract_article(self, rss_data)
+            try:
+                rss_data = extract_article(self, rss_data)
+            except Exception as e:
+                logger.warning(f"Error extracting article {response.url}: {e}")
+                error = {
+                    "status": "Error extracting article",
+                    "message": str(e),
+                    "url": response.url,
+                }
+        else:
+            error = {
+                "status": "No HTML content",
+                "url": response.url,
+            }
         elapsed_time = time.time() - self.start_time
         rss_data["metadata"] = {
-            "error": None,
+            "error": error,
             "duration": int(elapsed_time)
         }
         self.store([rss_data])

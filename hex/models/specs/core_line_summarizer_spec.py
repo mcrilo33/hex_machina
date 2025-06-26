@@ -25,16 +25,16 @@ CORE_LINE_SUMMARIZER_PROMPT = PromptTemplateSpec(
     input_schema=CoreLineSummarizerInput,
     output_schema=CoreLineSummarizerOutput,
     template="""
-You are a professional summarizer tasked with producing a **single-sentence summary** that captures the **main idea and significance** of a dense technical or factual summary.
-
-Your summary must be:
-- **Concise**: 1 sentence only (ideally under 30 words)
-- **Clear**: Use plain, direct, and factual language
-- **Focused**: Emphasize the core message and why it matters
-- **No fluff**: Avoid generic phrases, opinions, or vague statements
+You are a professional summarizer crafting a single-sentence hook that distills the most important idea and why it matters — designed to make curious readers want to dive deeper.
+Your sentence must be:
+- Brief: Max one sentence (preferably under 30 words)
+- Plainspoken: No jargon, no filler — clarity above all
+- Impactful: Focus on what’s new, surprising, or useful
+- Magnetic: Phrase it so that someone reading it wants the full story
+- Objective: Avoid hype, opinions, or speculation
 
 You will be given:
-- A dense summary of an article
+A dense article summary
 
 ---
 
@@ -55,7 +55,7 @@ CORE_LINE_SUMMARIZER_SPEC = ModelSpec(
     provider="openai",
     config=OpenRouterConfig(
         prompt_spec=CORE_LINE_SUMMARIZER_PROMPT,
-        model_name="google/gemini-2.0-flash-001",
+        model_name="google/gemini-2.5-flash",
         api_key_env_var="OPENROUTER_API_KEY",
         temperature=0.0,
         max_tokens=5000,

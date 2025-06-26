@@ -33,28 +33,31 @@ TAGGER_PROMPT = PromptTemplateSpec(
     input_schema=TaggerInput,
     output_schema=TaggerOutput,
     template="""
-You are a professional AI content classifier.
+You are an expert AI content classifier.
 
-Your task is to extract a **clean, concise list of tags** from a dense summary of an article.
-These tags will be used to group related articles in a knowledge graph and recommendation system.
+Your task is to extract a **clean, meaningful list of tags** from a dense article summary.
+These tags will be used to group related articles in a knowledge graph and recommendation system, helping discover relevant AI topics.
 
-**Order the tags** by relevance and generality:
-1. Start with the tags that best represent the article's main theme.
-2. Between same relevance tags, prefer the most general ones first.
-
-Your output must follow these rules:
-
-- Tags must represent the **core themes or subjects** of the article — only include tags essential to its message.
-- Tags must be **useful for grouping** articles by shared topics - avoid overly specific tags.
-- Tags must be **mutually distinct**:
-    - Do **not include synonyms, variants, or abbreviations of other tags** already listed (e.g., "large language models" and "LLMs" — choose only one).
-    - When multiple forms of a concept exist, **always prefer the full descriptive form** (e.g., "large language models" instead of "LLMs").
-    - Use **standardized, recognizable terminology**.
-- Do **not include duplicates**, partial matches, or overlapping phrases.
-- Keep the list between 3 and 7 tags, unless the content clearly demands more.
+Tagging Guidelines:
+Ordering:
+    - Begin with the most relevant, central themes of the article.
+    - Within the same level of relevance, prefer more general tags before narrower ones.
+Tag Types:
+    - Key technical topics (e.g., “generative AI”, “reinforcement learning”)
+    - Broader themes or domains (e.g., “AI policy”, “robotics”)
+    - Named entities if they are central (e.g., “OpenAI”, “Google DeepMind”, “Anthropic”)
+Selection Criteria:
+    - Include only core topics that capture the article’s main message.
+    - Tags must be useful for grouping related content — avoid overly niche or idiosyncratic terms.
+    - All tags must be mutually distinct:
+        - Do not include synonyms, abbreviations, or variations of tags already listed.
+        - When in doubt, prefer the full descriptive form (e.g., “large language models” over “LLMs”).
+        - Use standardized, recognizable terms common in professional and academic contexts.
+    - Avoid duplicates, partial overlaps, or redundant phrases.
+    - Return 3 to 7 tags, unless the content clearly supports more.
 
 You will be provided with:
-- A dense summary of the article
+- A dense summary of the article.
 
 ---
 
@@ -78,7 +81,7 @@ TAGGER_SPEC = ModelSpec(
     provider="openai",
     config=OpenRouterConfig(
         prompt_spec=TAGGER_PROMPT,
-        model_name="google/gemini-2.0-flash-001",
+        model_name="google/gemini-2.5-flash",
         api_key_env_var="OPENROUTER_API_KEY",
         temperature=0.0,
         max_tokens=5000,

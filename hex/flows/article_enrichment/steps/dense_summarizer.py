@@ -26,8 +26,9 @@ def execute(flow):
         is_ai = flow.metrics["models_io"]["article_is_ai_classifier_spec"]["outputs"][idx]
         if is_ai is not None and is_ai["output"]:
             inputs, outputs, errors = predict(model_spec_name, [article])
+            if outputs[0] is not None:
+                outputs[0]["doc_id"] = flow.articles[idx]["doc_id"]
             flow.metrics["models_io"][model_spec_name]["inputs"] += inputs
-            outputs[0]["doc_id"] = flow.articles[idx]["doc_id"]
             flow.metrics["models_io"][model_spec_name]["outputs"] += outputs
             flow.metrics["models_io"][model_spec_name]["errors"] += errors
         else:

@@ -42,38 +42,38 @@ NEWSLETTER_LINKEDIN_POST_PROMPT = PromptTemplateSpec(
     input_schema=NewsletterLinkedinPostInput,
     output_schema=NewsletterLinkedinPostOutput,
     template="""
-You are an expert copywriter for LinkedIn, ghost-writing on behalf of Mathieu
-Crilout, the creator of Hex Machina—an autonomous AI newsletter.
+ROLE
+You're an elite LinkedIn ghostwriter crafting posts for Hex Machina—the fully autonomous AI newsletter.
 
-OBJECTIVE
-• Craft one LinkedIn post that showcases the latest issue: "{header}", proves
-my AI/agent-building skills, and drives clicks to the newsletter.
+GOAL
+Write a scroll-stopping LinkedIn post designed to:
+- Capture attention of busy tech leaders immediately.
+- Drive engagement and direct traffic to the latest issue of Hex Machina.
 
-SOURCE MATERIAL
+INPUTS
 - TITLE: \"\"\"{header}\"\"\"
 - SUBTITLE: \"\"\"{subtitle}\"\"\"
 - EDITO: \"\"\"{edito}\"\"\"
 - SELECTED ARTICLES: \"\"\"{result}\"\"\"
 
-STYLE & FORMAT
-1. **Headline (1 bold line)** – Grab attention with a provocative insight or
-stat.
-2. **3 concise bullets** – Present the biggest "aha" moments from the issue
-(use ✅/🚀/🧠 emojis sparingly).
-3. **Why it matters paragraph** – Translate the insights into business or
-career impact in ≤3 sentences.
-4. **Build-in-public flex** – One sentence revealing that Hex Machina is
-100 % machine-generated and "zero human touch").
-7. **Hashtags** – Append 5-7 relevant, mixed-size tags (e.g. #AI
-#MachineLearning #AIAgents #TechTrends #Newsletter).
+OUTPUT FORMAT
+Structure your LinkedIn post exactly as follows:
+- Bold, provocative 1-line hook to instantly grab attention (use a striking insight, surprising stat, or emerging trend).
+- Bold 1-line introduction by Hex Machina highlighting urgency or uniqueness (e.g., "90% of what you're reading about AI is already outdated.") without writing "Hex Machina" or "Hex" in the text.
+- Clearly formatted newsletter title and subtitle.
+- "This week’s insights:" followed by exactly three concise, action-oriented bullets derived from the selected articles (each bullet: one short line).
+- Brief (2–3 lines) "Why it matters" paragraph clearly tying insights back to reader's career, products, or strategic advantage.
+- Direct link clearly labeled (e.g., "Read the full issue:").
+- Engagement question (one open-ended line) to spark comments and dialogue.
+- Short "build-in-public" flex line showcasing Hex's autonomous nature and tangible benefit (time saved, clarity provided, etc.).
+- 5–7 targeted hashtags (e.g., #AIAgents, #AgentOps, #AInewsletter, #LLMs, #TechTrends, #Automation, #AIcuration).
 
-TONE
-• Professional but conversational ("I built…", "Here's why this matters").
-• Crisp, no fluff, punchy verbs.
-• Keep total length under 1 200 characters.
+RULES
+- Professional yet conversational (written as a smart, opinionated founder).
+- Clear, punchy, direct—no fluff.
+- Max 1,200 characters total.
 
-OUTPUT
-Return ONLY the final LinkedIn post—no explanations, no markdown code fences.
+Begin.
 """
 )
 
@@ -84,7 +84,7 @@ NEWSLETTER_LINKEDIN_POST_SPEC = ModelSpec(
     provider="openai",
     config=OpenRouterConfig(
         prompt_spec=NEWSLETTER_LINKEDIN_POST_PROMPT,
-        model_name="anthropic/claude-3.5-haiku",
+        model_name="openai/gpt-4.1",
         api_key_env_var="OPENROUTER_API_KEY",
         temperature=0.0,
         max_tokens=10000,

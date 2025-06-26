@@ -41,6 +41,10 @@ class ArticleSelectionFlow(FlowSpec):
                                help='Table to register selected articles',
                                default='selected_articles')
 
+    newsletter_dir = Parameter('newsletter_dir',
+                               help='Directory where to save the newsletter',
+                               default=None)
+
     @step
     def start(self):
         """Initialize the pipeline."""
