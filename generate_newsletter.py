@@ -299,7 +299,8 @@ def generate_newsletter(
     )
     
     selection_params = {
-        **common_params,
+        'date_threshold': date_threshold,
+        'clean_tables': True,
         'articles_table': replicates_table,
         'selected_articles_table': selected_articles_table,
         'date_threshold': date_threshold,
