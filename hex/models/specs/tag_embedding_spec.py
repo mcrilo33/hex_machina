@@ -11,5 +11,6 @@ TAG_EMBEDDING_SPEC = ModelSpec(
         model_name="text-embedding-3-large",
         matrix_cache_dir="models/text-embedding-3-large",
         api_key_env_var="OPENAI_API_KEY",
+        dimensions=3072
     )
 )

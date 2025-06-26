@@ -31,6 +31,12 @@ def predict(model_spec_name, data):
             pred_success = True
             pred = model_spec._loaded_model.predict(validated_input)
         except Exception as e:
+            if 'No auth credentials found' in str(e):
+                raise ValueError(
+                    f"Wrong OpenRouter API key!\n"
+                    f"You need to set the OPENROUTER_API_KEY in the .env file!\n"
+                    f">>> See README.md for more details <<<"
+                )
             logger.error(f"❌ Error on article {idx}: {str(e)}")
             errors.append({
                 "index": idx,

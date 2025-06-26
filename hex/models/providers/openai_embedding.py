@@ -123,7 +123,7 @@ class OpenAIEmbedding():
     def __init__(self, config: BaseModel):
         self.client = OpenAI(api_key=config.api_key)
         dim = DEFAULT_EMBED_DIMS.get(config.model_name, 3072)
-        dim = config.dimensions if hasattr(config, "dimensions") else dim
+        dim = config.dimensions if isinstance(config.dimensions, int) else dim
         self.cache = EmbeddingMatrixCache(config.matrix_cache_dir, embedding_dim=dim)
         self.model_name = config.model_name
 
@@ -142,11 +142,19 @@ class OpenAIEmbedding():
             }
 
         # Make API call
-        response = self.client.embeddings.create(
-            input=input_text,
-            model=self.model_name,
-            **self.embeddings_params
-        )
+        try:
+            response = self.client.embeddings.create(
+                input=input_text,
+                model=self.model_name,
+                **self.embeddings_params
+            )
+        except Exception as e:
+            if 'Incorrect API key' in str(e):
+                raise ValueError(
+                    f"Wrong OpenAI API key!\n"
+                    f"You need to set the OPENAI_API_KEY in the .env file!\n"
+                    f">>> See README.md for more details <<<"
+                )
 
         embedding = response.data[0].embedding
         metadata = {
