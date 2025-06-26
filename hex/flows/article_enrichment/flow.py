@@ -67,11 +67,6 @@ class ArticleEnrichmentFlow(FlowSpec):
     def load_articles(self):
         """Load articles published after a date threshold."""
         load_articles_step(self)
-        if len(self.articles) == 0:
-            logger.warning("No articles to process.")
-            logger.warning("Exiting flow.")
-            self.next(self.end)
-            return
         self.next(self.is_ai_articles)
 
     @step
