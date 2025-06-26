@@ -24,10 +24,9 @@ NEWSLETTER_EDITO_IMAGE_PROMPT = PromptTemplateSpec(
     output_schema=NewsletterEditoImageOutput,
     template="""
 Create a sleek, panoramic digital illustration that embodies the idea: "{title}".
-Soft gradients on a light background.  
-Wide horizontal format (banner-style).  
-Centered, balanced composition.  
-**Do not include any text, words, or lettering in the image.**
+Incorporate a colorful and retro-futuristic aesthetic inspired by early science fiction manga — expressive, minimal forms, bold silhouettes, and optimistic tech design.
+Keep the composition centered and balanced, in a wide horizontal (banner-style) format.
+Do not include any text, words, or lettering in the image.
 """
 )
 
