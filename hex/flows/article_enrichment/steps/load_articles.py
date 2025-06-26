@@ -24,9 +24,9 @@ def _load_query(storage, articles_table, date_threshold, articles_limit):
         articles_table,
         Article.published_date.test(lambda d: to_aware_utc(d) >= date_threshold)
     )
+    articles = get_articles_with_no_error(articles)
     if articles_limit is not None:
         articles = articles[:articles_limit]
-    articles = get_articles_with_no_error(articles)
     logger.info(f"✅ Loaded {len(articles)} articles from '{articles_table}': "
                 f"len(articles)={len(articles)}, date_threshold='{date_threshold}'")
     return articles
