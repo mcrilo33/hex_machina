@@ -130,6 +130,12 @@ def execute(flow):
                 "error_message": str(e),
                 "tag_id": tag["doc_id"]
             })
+            if 'Wrong OpenAI API key' in str(e):
+                raise ValueError(
+                    f"Wrong OpenAI API key!\n"
+                    f"You need to set the OPENAI_API_KEY in the .env file!\n"
+                    f">>> See README.md for more details <<<"
+                )
         else:
             pred_duration = time.time() - pred_start_time
             flow.metrics["models_io"][model_spec_name]["outputs"].append({
