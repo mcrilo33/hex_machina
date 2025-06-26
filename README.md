@@ -50,6 +50,8 @@ Keeping up with the **fast-moving AI landscape** is **time-consuming**. Traditio
 3. **Set up your environment variables** in the existing `.env` file:
 
    > **Note:** You need a paid, working API key for both OpenAI and OpenRouter platforms.  
+   > - Get your OpenAI API key here: [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+   > - Get your OpenRouter API key here: [https://openrouter.ai/docs/api-reference/api-keys/create-api-key](https://openrouter.ai/docs/api-reference/api-keys/create-api-key)
    > Don't worry—processing thousands of articles typically costs only a couple of cents.
 
    ```bash
